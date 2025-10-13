@@ -1,0 +1,21 @@
+{
+  "projectName": "Wholesale Price Portal",
+  "codeStyle": "verbose",
+  "commentLevel": "non-coder-friendly",
+  "testingMode": true,
+  "allowAutoDocs": true,
+  "rules": [
+    "Every function must have a clear purpose and a descriptive docstring.",
+    "All code must include plain-English comments so a non-coder can understand what each line does.",
+    "When asked to make a change, only modify the part of the code directly related to that request.",
+    "If a suggested change affects other parts of the code, clearly explain why and ask for approval before making those changes.",
+    "All secrets (API keys, database URLs) must be read from the .env file — never hardcoded.",
+    "Avoid using unexplained numbers or variables ('magic numbers'); everything should be named clearly.",
+    "Each module should be self-contained and testable on its own.",
+    "Before connecting to real APIs or databases, test the function with mock data.",
+    "All calculations or suggestions must log the assumptions being made (e.g., ROI basis, fee structure).",
+    "Maintain the agreed folder structure: backend/app/* for code logic, data/ for test and sample files.",
+    "Never commit or push large auto-generated folders (venv, __pycache__, node_modules, etc.)."
+  ]
+}
+
