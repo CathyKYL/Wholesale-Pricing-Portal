@@ -39,6 +39,8 @@ Thumbs.db
 # Data
 data/*
 !data/.gitkeep
+Data.xlsx
+*.xlsx
 
 # Logs
 *.log
