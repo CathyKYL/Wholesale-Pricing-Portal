@@ -179,6 +179,7 @@ async def get_catalog(
             "our_price": float(item.our_price) if item.our_price else None,
             # Keepa enrichment fields
             "isbn13": item.isbn13,
+            "description": item.description,
             "image_url": item.image_url,
             "category_lvl1": item.category_lvl1,
             "category_lvl2": item.category_lvl2,
@@ -217,6 +218,7 @@ async def get_catalog_item(item_id: int, db: Session = Depends(get_db)):
         "our_price": float(item.our_price) if item.our_price else None,
         # Keepa enrichment fields
         "isbn13": item.isbn13,
+        "description": item.description,
         "image_url": item.image_url,
         "category_lvl1": item.category_lvl1,
         "category_lvl2": item.category_lvl2,

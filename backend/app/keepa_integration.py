@@ -3,9 +3,10 @@ Keepa API Integration Module
 -----------------------------
 Purpose:
 - Fetch product metadata from Keepa API for Amazon ASINs
-- Enrich our database with ISBN, images, dimensions, weight
+- Enrich our database with ISBN, images, dimensions, weight, description
 - Handle US and UK marketplace separately
 - Batch requests to respect Keepa API limits (100 ASINs per request)
+- Convert package dimensions from inches to centimeters
 
 Keepa API Documentation: https://keepa.com/#!discuss/t/product-object/116
 
@@ -28,6 +29,35 @@ from decimal import Decimal
 from config import settings
 from db import SessionLocal
 from models import CatalogRow
+
+
+def inches_to_cm(value):
+    """
+    Convert Inches to Centimeters
+    ------------------------------
+    Helper function to convert measurements from inches to centimeters.
+    
+    Args:
+        value: Numeric value in inches (can be int, float, or string)
+    
+    Returns:
+        Float value in centimeters, rounded to 2 decimal places
+        Returns None if conversion fails
+    
+    Example:
+        >>> inches_to_cm(10.2)
+        25.91
+        >>> inches_to_cm("8.5")
+        21.59
+        >>> inches_to_cm(None)
+        None
+    """
+    try:
+        # Convert to float and multiply by 2.54 (1 inch = 2.54 cm)
+        return round(float(value) * 2.54, 2)
+    except (TypeError, ValueError):
+        # Return None if value is None, empty string, or cannot be converted
+        return None
 
 
 def fetch_keepa_data(asins: List[str], marketplace: str) -> List[Dict]:
@@ -90,11 +120,14 @@ def fetch_keepa_data(asins: List[str], marketplace: str) -> List[Dict]:
         url = f"https://api.keepa.com/product"
         
         # Query parameters
-        # Note: Only include required parameters to avoid API errors
+        # stats=0: Don't include price history statistics (saves tokens)
+        # product=1: Include full product details (dimensions, features, etc.)
         params = {
             'key': settings.KEEPA_API_KEY,
             'domain': domain,
-            'asin': asin_string
+            'asin': asin_string,
+            'stats': 0,      # Don't need price statistics
+            'product': 1     # Request full product details (dimensions, description, etc.)
         }
         
         try:
@@ -206,17 +239,55 @@ def parse_keepa_product(product: Dict, marketplace: str) -> Dict:
         if len(category_tree) > 2:
             category_lvl3 = category_tree[2].get('name', '')
     
-    # Extract package dimensions
-    # Format: [length, width, height] in inches * 100
-    # Example: [1020, 850, 120] = 10.2" x 8.5" x 1.2"
+    # Extract product description
+    # Keepa provides description in 'features' (array of bullet points) or 'description'
+    # We'll prioritize features, fall back to description
+    description = None
+    
+    # Try features first (array of bullet points)
+    features = product.get('features')
+    if features and isinstance(features, list) and len(features) > 0:
+        # Join feature bullets with newline separators
+        # Limit to first 5 features to avoid exceeding column size
+        description = '\n'.join(features[:5])
+        # Truncate if too long (max 2000 characters)
+        if len(description) > 2000:
+            description = description[:1997] + '...'
+    
+    # If no features, try description field
+    if not description:
+        desc_text = product.get('description', '')
+        if desc_text:
+            # Truncate if too long
+            if len(desc_text) > 2000:
+                description = desc_text[:1997] + '...'
+            else:
+                description = desc_text
+    
+    # Extract package dimensions and convert to centimeters
+    # Keepa provides separate fields: packageLength, packageWidth, packageHeight
+    # Values are in MILLIMETERS
+    # Example: packageLength=198, packageWidth=128, packageHeight=18
+    # We convert to centimeters: 1 cm = 10 mm
     package_dimensions = None
-    dims = product.get('packageDimension', [])
-    if dims and len(dims) >= 3:
-        # Convert from hundredths of inch to inches
-        length = dims[0] / 100.0 if dims[0] else 0
-        width = dims[1] / 100.0 if dims[1] else 0
-        height = dims[2] / 100.0 if dims[2] else 0
-        package_dimensions = f"{length:.2f} x {width:.2f} x {height:.2f}"
+    
+    # Get individual dimension fields (in millimeters)
+    length_mm = product.get('packageLength')
+    width_mm = product.get('packageWidth')
+    height_mm = product.get('packageHeight')
+    
+    # Convert from millimeters to centimeters
+    if length_mm and width_mm and height_mm:
+        try:
+            length_cm = round(float(length_mm) / 10.0, 2)  # mm to cm
+            width_cm = round(float(width_mm) / 10.0, 2)    # mm to cm
+            height_cm = round(float(height_mm) / 10.0, 2)  # mm to cm
+            
+            # Format as string: "L x W x H cm"
+            package_dimensions = f"{length_cm} x {width_cm} x {height_cm} cm"
+        except (TypeError, ValueError):
+            # If conversion fails, leave as None
+            package_dimensions = None
     
     # Extract package weight
     # Keepa returns weight in grams
@@ -230,6 +301,7 @@ def parse_keepa_product(product: Dict, marketplace: str) -> Dict:
         'asin': asin,
         'marketplace': marketplace,
         'title': title,
+        'description': description,
         'isbn13': isbn13,
         'image_url': image_url,
         'category_lvl1': category_lvl1,
@@ -333,6 +405,8 @@ def update_catalog_with_keepa(marketplace: Optional[str] = None, limit: Optional
                 # Only update if Keepa has data (don't overwrite with None)
                 if parsed.get('title'):
                     catalog_item.title = parsed['title']
+                if parsed.get('description'):
+                    catalog_item.description = parsed['description']
                 if parsed.get('isbn13'):
                     catalog_item.isbn13 = parsed['isbn13']
                 if parsed.get('image_url'):
@@ -389,9 +463,11 @@ if __name__ == "__main__":
             print(f"\nParsed data:")
             print(f"  ASIN: {parsed['asin']}")
             print(f"  Title: {parsed['title']}")
+            print(f"  Description: {parsed['description'][:100] if parsed['description'] else 'N/A'}...")
             print(f"  ISBN-13: {parsed['isbn13']}")
             print(f"  Dimensions: {parsed['package_dimensions']}")
             print(f"  Weight: {parsed['package_weight']} lbs")
+            print(f"  Categories: {parsed['category_lvl1']} > {parsed['category_lvl2']} > {parsed['category_lvl3']}")
     else:
         print("\n❌ No products fetched")
 

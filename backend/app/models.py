@@ -120,8 +120,14 @@ class CatalogRow(Base):
     # Example: "Psychology & Psychiatry", "Networking & Cloud Computing"
     category_lvl3 = Column(String(200), nullable=True)
     
-    # Package dimensions in inches (Length x Width x Height)
-    # Stored as string (e.g., "10.2 x 8.5 x 1.2")
+    # Product description from Amazon
+    # This contains the main product description text or feature bullets
+    # Fetched from Keepa's features or description field
+    description = Column(String(2000), nullable=True)
+    
+    # Package dimensions in centimeters (Length x Width x Height)
+    # Stored as string (e.g., "25.91 x 21.59 x 3.05 cm")
+    # Converted from inches to centimeters (1 inch = 2.54 cm)
     # Useful for calculating shipping costs
     package_dimensions = Column(String(100), nullable=True)
     
