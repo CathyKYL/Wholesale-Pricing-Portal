@@ -42,6 +42,11 @@ data/*
 Data.xlsx
 *.xlsx
 
+# Database exports
+*.sql
+*.dump
+wholesale_portal_backup.*
+
 # Logs
 *.log
 

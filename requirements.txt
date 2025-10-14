@@ -1,9 +1,10 @@
 pandas
 sqlalchemy
-psycopg2
+psycopg2-binary
 fastapi
 uvicorn
 python-dotenv
 keepa
 openpyxl
+schedule
 

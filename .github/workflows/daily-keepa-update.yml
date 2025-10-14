@@ -1,0 +1,51 @@
+name: Daily Keepa Price Update
+
+on:
+  # Run daily at 3:00 AM UTC
+  schedule:
+    - cron: '0 3 * * *'
+  
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run daily Keepa update
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          KEEPA_API_KEY: ${{ secrets.KEEPA_API_KEY }}
+        run: |
+          cd backend/app
+          python keepa_ingestor.py --daily
+      
+      - name: Verify update completed
+        if: success()
+        run: |
+          echo "✅ Daily Keepa update completed successfully!"
+          echo "Date: $(date)"
+          echo "Records updated: Check logs above"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Daily update failed!"
+          echo "Check the logs above for error details"
+          exit 1
+
