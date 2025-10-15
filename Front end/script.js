@@ -82,8 +82,14 @@ async function populateHeaderCategoryDropdown() {
         // Sort categories alphabetically
         const sortedCategories = Array.from(categories).sort();
         
-        // Get dropdown container
+        // Get dropdown container (REMOVED - dropdown feature disabled)
         const dropdown = document.getElementById('catalog-dropdown');
+        
+        // Skip dropdown population if element doesn't exist
+        if (!dropdown) {
+            console.log(`[Dropdown] Dropdown removed - skipping category population`);
+            return;
+        }
         
         // Clear existing items except "All Categories"
         dropdown.innerHTML = '<a href="#" class="dropdown-item" data-category="all">All Categories</a>';
@@ -114,6 +120,11 @@ function setupDropdownEventListeners() {
     // Use event delegation on the parent dropdown container
     // This is more reliable than attaching to individual items
     const dropdown = document.getElementById('catalog-dropdown');
+    
+    // Skip if dropdown doesn't exist (removed from UI)
+    if (!dropdown) {
+        return;
+    }
     
     // Remove old listener if exists
     if (dropdown._clickHandler) {
@@ -1432,12 +1443,65 @@ async function filterCatalog() {
 }
 
 /* ========================================
-   CONTACT BUTTON HANDLER
+   CONTACT FORM MODAL HANDLER
    ======================================== */
+const contactModal = document.getElementById('contact-modal');
+const contactForm = document.getElementById('contact-form');
+const contactModalClose = document.getElementById('contact-modal-close');
+
+// Open contact modal when contact button is clicked
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('contact-btn') || e.target.closest('.contact-btn')) {
-        alert('Thank you for your interest! Our sales team will contact you shortly.\n\nFor immediate assistance:\nEmail: sales@bookportal.com\nPhone: +1 (555) 123-4567');
+        contactModal.classList.add('active');
+        // Reset form when opening
+        contactForm.reset();
     }
+});
+
+// Close modal when close button is clicked
+contactModalClose.addEventListener('click', () => {
+    contactModal.classList.remove('active');
+});
+
+// Close modal when clicking outside the modal content
+contactModal.addEventListener('click', (e) => {
+    if (e.target === contactModal) {
+        contactModal.classList.remove('active');
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && contactModal.classList.contains('active')) {
+        contactModal.classList.remove('active');
+    }
+});
+
+// Handle form submission (demo - no backend)
+contactForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Get form values (for demo purposes - could log to console)
+    const formData = new FormData(contactForm);
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const message = formData.get('message');
+    
+    console.log('Contact Form Submission (Demo):', {
+        name,
+        email,
+        message,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Show success message
+    alert(`Thank you, ${name}! 🎉\n\nYour message has been received. Our sales team will contact you at ${email} shortly.\n\nFor immediate assistance:\n📧 sales@bookportal.com\n📞 +1 (555) 123-4567`);
+    
+    // Close modal
+    contactModal.classList.remove('active');
+    
+    // Reset form
+    contactForm.reset();
 });
 
 /* ========================================

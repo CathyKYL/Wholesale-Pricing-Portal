@@ -20,14 +20,7 @@
             <div class="logo" id="logo-home">Wholesale Portal</div>
             <div class="nav-tabs">
                 <button class="nav-tab active" data-tab="quotation">Quotation</button>
-                <div class="nav-tab-wrapper">
-                    <button class="nav-tab" data-tab="catalog">Catalog</button>
-                    <!-- Catalog dropdown menu - dynamically populated from database -->
-                    <div class="catalog-dropdown" id="catalog-dropdown">
-                        <a href="#" class="dropdown-item" data-category="all">All Categories</a>
-                        <!-- Categories from category_lvl3 will be added here dynamically -->
-                    </div>
-                </div>
+                <button class="nav-tab" data-tab="catalog">Catalog</button>
             </div>
             <!-- Currency Toggle in Header -->
             <div class="currency-toggle-header">
@@ -347,6 +340,78 @@
             <div class="catalog-grid" id="catalog-grid">
                 <!-- Products will be dynamically inserted here -->
             </div>
+        </div>
+    </div>
+
+    <!-- ========================================
+         CONTACT FORM MODAL
+    ========================================= -->
+    <div class="contact-modal" id="contact-modal">
+        <div class="contact-modal-content">
+            <button class="contact-modal-close" id="contact-modal-close">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            
+            <div class="contact-modal-header">
+                <svg class="contact-modal-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <h2>Contact Us</h2>
+                <p>Send us a message and we'll get back to you shortly</p>
+            </div>
+            
+            <form class="contact-form" id="contact-form">
+                <div class="form-group">
+                    <label for="contact-name">Your Name *</label>
+                    <input 
+                        type="text" 
+                        id="contact-name" 
+                        name="name" 
+                        placeholder="Enter your full name"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact-email">Email Address *</label>
+                    <input 
+                        type="email" 
+                        id="contact-email" 
+                        name="email" 
+                        placeholder="your.email@example.com"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact-message">Message *</label>
+                    <textarea 
+                        id="contact-message" 
+                        name="message" 
+                        rows="5" 
+                        placeholder="Tell us about your inquiry, including product details, quantities, or any questions..."
+                        required
+                    ></textarea>
+                </div>
+                
+                <div class="contact-form-footer">
+                    <p class="contact-info-text">
+                        <strong>For immediate assistance:</strong><br>
+                        📧 sales@bookportal.com<br>
+                        📞 +1 (555) 123-4567
+                    </p>
+                    <button type="submit" class="contact-submit-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                        Send Message
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
