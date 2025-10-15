@@ -758,7 +758,8 @@ def save_to_postgres(df):
     
     except Exception as e:
         print(f"   ❌ Error saving to database: {e}")
-        return 0, df
+        # Re-raise the exception so the script fails (important for GitHub Actions)
+        raise
 
 
 def compute_trends():

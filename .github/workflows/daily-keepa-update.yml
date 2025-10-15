@@ -27,6 +27,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Verify DATABASE_URL is set
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: DATABASE_URL secret is not set!"
+            echo "Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            exit 1
+          else
+            echo "✅ DATABASE_URL is set"
+          fi
+      
+      - name: Verify KEEPA_API_KEY is set
+        env:
+          KEEPA_API_KEY: ${{ secrets.KEEPA_API_KEY }}
+        run: |
+          if [ -z "$KEEPA_API_KEY" ]; then
+            echo "❌ ERROR: KEEPA_API_KEY secret is not set!"
+            echo "Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            exit 1
+          else
+            echo "✅ KEEPA_API_KEY is set"
+          fi
+      
       - name: Run daily Keepa update
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
