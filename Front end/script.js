@@ -861,11 +861,11 @@ async function displayProductResults(product) {
     const categoryValue = product.category_lvl3 || product.category_lvl2 || product.category || 'General';
     document.getElementById('product-category').textContent = categoryValue;
     
-    // Weight - fetch from database package_weight field (in lbs)
+    // Weight - fetch from database package_weight field (in kg)
     if (product.package_weight && product.package_weight > 0) {
         // Format weight to 2 decimal places
         const weightValue = parseFloat(product.package_weight).toFixed(2);
-        document.getElementById('product-weight').textContent = `${weightValue} lbs`;
+        document.getElementById('product-weight').textContent = `${weightValue} kg`;
     } else {
         document.getElementById('product-weight').textContent = '-';
     }

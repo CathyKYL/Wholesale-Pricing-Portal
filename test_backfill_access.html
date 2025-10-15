@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backfill Test - Historical Data Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Simple, clean styling for test page */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #555;
+            font-size: 18px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        
+        .input-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        
+        #output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .success { color: #4CAF50; font-weight: bold; }
+        .error { color: #f44336; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; }
+        .info { color: #2196F3; font-weight: bold; }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Backfill Access Test</h1>
+        <p>This page tests if your Supabase database can access <code>backfill_test.dynamic_data</code> table via the RPC function.</p>
+        
+        <!-- Configuration Section -->
+        <div class="test-section">
+            <h2>📋 Step 1: Configuration</h2>
+            <p>Enter your Supabase credentials (from <code>Front end/config.js</code>):</p>
+            
+            <div class="input-group">
+                <label>Supabase URL:</label>
+                <input type="text" id="supabaseUrl" placeholder="https://xxx.supabase.co">
+            </div>
+            
+            <div class="input-group">
+                <label>Anon Key:</label>
+                <input type="text" id="supabaseKey" placeholder="eyJhbGc...">
+            </div>
+            
+            <button onclick="initializeClient()">Initialize Client</button>
+            <div id="initStatus" class="status pending">⏳ Not initialized</div>
+        </div>
+        
+        <!-- Test Section -->
+        <div class="test-section">
+            <h2>🧪 Step 2: Test Historical Data Access</h2>
+            <p>Test if you can fetch historical data from backfill_test schema:</p>
+            
+            <div class="input-group">
+                <label>ASIN:</label>
+                <input type="text" id="testAsin" value="1778766800" placeholder="Enter ASIN">
+            </div>
+            
+            <div class="input-group">
+                <label>Marketplace:</label>
+                <select id="testMarketplace">
+                    <option value="US">US</option>
+                    <option value="UK">UK</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label>Days Back:</label>
+                <input type="number" id="testDays" value="360" min="1" max="730">
+            </div>
+            
+            <button onclick="testViewAccess()" id="testViewBtn" disabled>Test View Access</button>
+            <button onclick="testDirectQuery()" id="testDirectBtn" disabled>Test Direct Query (Legacy)</button>
+            <button onclick="runFullDiagnostic()" id="testFullBtn" disabled>Run Full Diagnostic</button>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="test-section">
+            <h2>📊 Results</h2>
+            <div id="output">[No output yet - click a test button above]</div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================================
+        // Purpose: Test page to verify backfill_test.dynamic_data access
+        // This helps diagnose why historical data isn't loading in the main app
+        // ========================================================================
+        
+        let supabaseClient = null;
+        
+        /**
+         * Log a message to the output console
+         * 
+         * Args:
+         *   message - Text to display
+         *   type - 'success', 'error', 'warning', 'info', or null
+         */
+        function log(message, type = null) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            let colorClass = '';
+            
+            // Apply color based on message type
+            switch(type) {
+                case 'success': colorClass = 'success'; break;
+                case 'error': colorClass = 'error'; break;
+                case 'warning': colorClass = 'warning'; break;
+                case 'info': colorClass = 'info'; break;
+            }
+            
+            // Add message to output
+            if (colorClass) {
+                output.innerHTML += `<span class="${colorClass}">[${timestamp}] ${message}</span>\n`;
+            } else {
+                output.innerHTML += `[${timestamp}] ${message}\n`;
+            }
+            
+            // Auto-scroll to bottom
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        /**
+         * Clear the output console
+         */
+        function clearLog() {
+            document.getElementById('output').innerHTML = '';
+        }
+        
+        /**
+         * Initialize Supabase client with provided credentials
+         */
+        function initializeClient() {
+            clearLog();
+            log('=== INITIALIZING SUPABASE CLIENT ===', 'info');
+            
+            // Get credentials from input fields
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+            
+            // Validate inputs
+            if (!url || !key) {
+                log('❌ ERROR: Please enter both Supabase URL and Anon Key', 'error');
+                document.getElementById('initStatus').className = 'status error';
+                document.getElementById('initStatus').textContent = '❌ Configuration missing';
+                return;
+            }
+            
+            if (!url.includes('supabase.co')) {
+                log('❌ ERROR: Supabase URL looks incorrect (should contain "supabase.co")', 'error');
+                return;
+            }
+            
+            if (!key.startsWith('eyJ')) {
+                log('❌ ERROR: Anon Key looks incorrect (should start with "eyJ")', 'error');
+                return;
+            }
+            
+            try {
+                // Create Supabase client using provided credentials
+                supabaseClient = supabase.createClient(url, key);
+                
+                log('✅ Supabase client initialized successfully!', 'success');
+                log(`   URL: ${url}`, 'info');
+                log(`   Key: ${key.substring(0, 20)}...`, 'info');
+                
+                // Update status and enable test buttons
+                document.getElementById('initStatus').className = 'status success';
+                document.getElementById('initStatus').textContent = '✅ Client initialized';
+                
+                document.getElementById('testViewBtn').disabled = false;
+                document.getElementById('testDirectBtn').disabled = false;
+                document.getElementById('testFullBtn').disabled = false;
+                
+                log('\n✅ You can now run tests!', 'success');
+                
+            } catch (error) {
+                log(`❌ ERROR: Failed to initialize client: ${error.message}`, 'error');
+                document.getElementById('initStatus').className = 'status error';
+                document.getElementById('initStatus').textContent = '❌ Initialization failed';
+            }
+        }
+        
+        /**
+         * Test accessing data via the historical_data VIEW
+         * This is the simplest and recommended approach
+         */
+        async function testViewAccess() {
+            clearLog();
+            log('=== TEST 1: VIEW ACCESS ===', 'info');
+            log('Testing: public.historical_data view', 'info');
+            log('');
+            
+            // Get test parameters
+            const asin = document.getElementById('testAsin').value.trim();
+            const marketplace = document.getElementById('testMarketplace').value;
+            const daysBack = parseInt(document.getElementById('testDays').value);
+            
+            // Calculate date threshold
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - daysBack);
+            const dateString = dateThreshold.toISOString().split('T')[0];
+            
+            log(`Parameters:`, 'info');
+            log(`  - ASIN: ${asin}`);
+            log(`  - Marketplace: ${marketplace}`);
+            log(`  - Days Back: ${daysBack}`);
+            log(`  - Date From: ${dateString}`);
+            log('');
+            
+            try {
+                log('📡 Querying historical_data view...');
+                
+                // Query the view in public schema
+                const { data, error } = await supabaseClient
+                    .from('historical_data')
+                    .select('fetch_date, current_buybox_price, sales_rank_current, num_sellers')
+                    .eq('asin', asin)
+                    .eq('marketplace', marketplace)
+                    .gte('fetch_date', dateString)
+                    .order('fetch_date', { ascending: true });
+                
+                if (error) {
+                    log(`❌ VIEW ERROR: ${error.message}`, 'error');
+                    log('', 'error');
+                    
+                    if (error.message.includes('not found') || error.message.includes('does not exist')) {
+                        log('💡 SOLUTION: The historical_data view does not exist!', 'warning');
+                        log('   Please run the SQL script: FIX_BACKFILL_ACCESS_VIEW.sql', 'warning');
+                        log('   This will create the public.historical_data view', 'warning');
+                    } else if (error.message.includes('permission')) {
+                        log('💡 SOLUTION: Permission denied', 'warning');
+                        log('   Run the GRANT commands in FIX_BACKFILL_ACCESS_VIEW.sql', 'warning');
+                    }
+                    
+                    return;
+                }
+                
+                log(`✅ View query successful!`, 'success');
+                log(`   Records returned: ${data?.length || 0}`, 'success');
+                
+                if (!data || data.length === 0) {
+                    log('', 'warning');
+                    log('⚠️  WARNING: No data returned', 'warning');
+                    log('   This means:', 'warning');
+                    log(`   - The ASIN "${asin}" may not exist in backfill_test.dynamic_data`, 'warning');
+                    log(`   - OR the marketplace "${marketplace}" is wrong`, 'warning');
+                    log(`   - OR there's no data in the last ${daysBack} days`, 'warning');
+                    log('', 'warning');
+                    log('   Run CHECK_BACKFILL_DATA.sql to see what ASINs are available', 'warning');
+                } else {
+                    log('');
+                    log('📊 Sample Data (first 5 records):', 'info');
+                    data.slice(0, 5).forEach((row, i) => {
+                        log(`   ${i+1}. Date: ${row.fetch_date}, Price: $${row.current_buybox_price}, Rank: ${row.sales_rank_current}, Sellers: ${row.num_sellers}`);
+                    });
+                    
+                    log('');
+                    log('📈 Data Summary:', 'info');
+                    log(`   Date Range: ${data[0].fetch_date} to ${data[data.length-1].fetch_date}`);
+                    log(`   Total Days: ${data.length}`);
+                    log(`   Latest Seller Count: ${data[data.length-1].num_sellers || 'N/A'}`);
+                    
+                    const avgPrice = (data.reduce((sum, row) => sum + parseFloat(row.current_buybox_price || 0), 0) / data.length).toFixed(2);
+                    log(`   Average BuyBox Price: $${avgPrice}`);
+                }
+                
+                log('');
+                log('✅ TEST PASSED: historical_data view is working correctly!', 'success');
+                
+            } catch (error) {
+                log(`❌ EXCEPTION: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        /**
+         * Test accessing data via direct query
+         * This only works if backfill_test schema is exposed via PostgREST
+         */
+        async function testDirectQuery() {
+            clearLog();
+            log('=== TEST 2: DIRECT QUERY ACCESS ===', 'info');
+            log('Testing: Direct query to backfill_test.dynamic_data', 'info');
+            log('');
+            
+            const asin = document.getElementById('testAsin').value.trim();
+            const marketplace = document.getElementById('testMarketplace').value;
+            const daysBack = parseInt(document.getElementById('testDays').value);
+            
+            // Calculate date threshold
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - daysBack);
+            const dateString = dateThreshold.toISOString().split('T')[0];
+            
+            log(`Parameters:`, 'info');
+            log(`  - ASIN: ${asin}`);
+            log(`  - Marketplace: ${marketplace}`);
+            log(`  - Date From: ${dateString}`);
+            log('');
+            
+            try {
+                log('📡 Querying backfill_test.dynamic_data...');
+                
+                // Try direct query with schema prefix
+                const { data, error } = await supabaseClient
+                    .from('backfill_test.dynamic_data')
+                    .select('fetch_date, current_buybox_price, sales_rank_current, num_sellers')
+                    .eq('asin', asin)
+                    .eq('marketplace', marketplace)
+                    .gte('fetch_date', dateString)
+                    .order('fetch_date', { ascending: true });
+                
+                if (error) {
+                    log(`❌ QUERY ERROR: ${error.message}`, 'error');
+                    log('', 'warning');
+                    log('💡 EXPLANATION: This is EXPECTED!', 'warning');
+                    log('   Supabase only exposes the "public" schema by default.', 'warning');
+                    log('   The backfill_test schema is NOT exposed via PostgREST API.', 'warning');
+                    log('', 'warning');
+                    log('   This is why we need the RPC function approach instead!', 'warning');
+                    log('   The RPC function is in the public schema and can access backfill_test.', 'warning');
+                    return;
+                }
+                
+                log(`✅ Direct query worked! (Unexpected but good!)`, 'success');
+                log(`   Records returned: ${data?.length || 0}`, 'success');
+                
+                if (data && data.length > 0) {
+                    log('');
+                    log('📊 Sample Data:', 'info');
+                    data.slice(0, 3).forEach((row, i) => {
+                        log(`   ${i+1}. ${row.fetch_date}: $${row.current_buybox_price}, Rank: ${row.sales_rank_current}`);
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ EXCEPTION: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        /**
+         * Run full diagnostic test
+         * Tests multiple approaches and provides detailed troubleshooting
+         */
+        async function runFullDiagnostic() {
+            clearLog();
+            log('=== FULL DIAGNOSTIC TEST ===', 'info');
+            log('This will test all access methods and provide troubleshooting guidance', 'info');
+            log('');
+            
+            const asin = document.getElementById('testAsin').value.trim();
+            const marketplace = document.getElementById('testMarketplace').value;
+            
+            // Test 1: Check Supabase connection
+            log('TEST 1: Supabase Connection', 'info');
+            log('─────────────────────────────');
+            if (supabaseClient) {
+                log('✅ Supabase client is initialized', 'success');
+            } else {
+                log('❌ Supabase client is NOT initialized', 'error');
+                return;
+            }
+            
+            log('');
+            
+            // Test 2: Try VIEW access
+            log('TEST 2: VIEW Access (historical_data)', 'info');
+            log('─────────────────────────────────────────');
+            try {
+                // Calculate date for 30 days back
+                const dateThreshold = new Date();
+                dateThreshold.setDate(dateThreshold.getDate() - 30);
+                const dateString = dateThreshold.toISOString().split('T')[0];
+                
+                const { data: viewData, error: viewError } = await supabaseClient
+                    .from('historical_data')
+                    .select('fetch_date, current_buybox_price, sales_rank_current, num_sellers')
+                    .eq('asin', asin)
+                    .eq('marketplace', marketplace)
+                    .gte('fetch_date', dateString)
+                    .order('fetch_date', { ascending: true });
+                
+                if (viewError) {
+                    log(`❌ View query failed: ${viewError.message}`, 'error');
+                    
+                    if (viewError.message.includes('not found') || viewError.message.includes('does not exist')) {
+                        log('', 'warning');
+                        log('🔧 REQUIRED FIX:', 'warning');
+                        log('   1. Open Supabase Dashboard → SQL Editor', 'warning');
+                        log('   2. Run the script: FIX_BACKFILL_ACCESS_VIEW.sql', 'warning');
+                        log('   3. This creates the public.historical_data view', 'warning');
+                    }
+                } else {
+                    log(`✅ View access works! Got ${viewData?.length || 0} records`, 'success');
+                    
+                    if (viewData && viewData.length > 0) {
+                        log(`   Latest date: ${viewData[viewData.length-1].fetch_date}`, 'info');
+                        log(`   Latest price: $${viewData[viewData.length-1].current_buybox_price}`, 'info');
+                        log(`   Seller count: ${viewData[viewData.length-1].num_sellers || 'N/A'}`, 'info');
+                    } else {
+                        log(`   ⚠️  No data found for ASIN: ${asin}`, 'warning');
+                    }
+                }
+            } catch (e) {
+                log(`❌ Exception: ${e.message}`, 'error');
+            }
+            
+            log('');
+            
+            // Test 3: Try direct query
+            log('TEST 3: Direct Schema Access', 'info');
+            log('─────────────────────────────');
+            try {
+                const { data: directData, error: directError } = await supabaseClient
+                    .from('backfill_test.dynamic_data')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (directError) {
+                    log('❌ Cannot access backfill_test schema directly (EXPECTED)', 'warning');
+                    log('   Supabase only exposes the public schema by default', 'info');
+                    log('   This is why we use the RPC function approach', 'info');
+                } else {
+                    log('✅ Direct schema access works! (Unusual)', 'success');
+                }
+            } catch (e) {
+                log(`❌ Exception: ${e.message}`, 'error');
+            }
+            
+            log('');
+            log('=== DIAGNOSTIC COMPLETE ===', 'info');
+            log('');
+            
+            // Summary
+            log('📋 SUMMARY:', 'info');
+            log('─────────────');
+            log('For the frontend to work, you need:');
+            log('  1. ✅ Supabase client initialized (working)');
+            log('  2. ❓ historical_data view exists (check Test 2 above)');
+            log('  3. ❓ Data exists in backfill_test.dynamic_data (check Test 2 above)');
+            log('');
+            log('Next Steps:');
+            log('  → If view query failed: Run FIX_BACKFILL_ACCESS_VIEW.sql');
+            log('  → If no data found: Run your data import script');
+            log('  → If everything passed: Test in your main frontend!');
+        }
+        
+        // Auto-load credentials from config.js if available
+        window.addEventListener('DOMContentLoaded', () => {
+            // Try to detect if config.js was loaded
+            if (typeof config !== 'undefined') {
+                document.getElementById('supabaseUrl').value = config.SUPABASE_URL || '';
+                document.getElementById('supabaseKey').value = config.SUPABASE_ANON_KEY || '';
+            }
+        });
+    </script>
+</body>
+</html>
+

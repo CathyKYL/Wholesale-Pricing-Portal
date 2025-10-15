@@ -1,0 +1,75 @@
+ASIN,Title,Marketplace,Weight_kg,BB_avg,C_cost,m,fx_gbp_to_usd,AF,FC,SC,S_bundle,Qmin,Qmax_20,Qmax_15,Qmax_10,r_used,Quote_Q,Seller_ROI_%,Our_ROI_%,Margin_abs,Margin_%,Feasible,Reason
+0076697940,Jujutsu Kaisen Series 10 Books Collection Manga Se,UK,1.77808064,79.9635,39.11,0.1,1.3,13.59,3.5,0.5,17.59,43.021,49.05,51.94,55.1,0.2,49.05,19.99,25.42,9.94,25.42,True,
+0076697940,Jujutsu Kaisen Series 10 Books Collection Manga Set (Vol. 11-20),US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+0114850003,"Gold Rush Ranch Series 4 Books Collection Set By Elsie Silver (Off to the Races, A Photo Finish, The Front Runner & A False Start)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+0114850003,"Gold Rush Ranch Series 4 Books Collection Set By Elsie Silver (Off to the Races, A Photo Finish, The Front Runner & A False Start)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+070234236X,The Deluxe Hunger Games Collection (a stunningly designed - with patterned edge! - 4 book set of the global bestselling series) (The Hunger Games),UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+070234236X,The Deluxe Hunger Games Collection (a stunningly designed - with patterned edge! - 4 book set of the global bestselling series) (The Hunger Games),US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+143914995X,Lessons of History,UK,0.0907184,7.575,0.75,0.1,1.3,1.29,3.0,0.5,4.79,0.825,1.52,1.8,2.1,0.2,1.52,20.05,102.67,0.77,102.67,True,
+143914995X,Lessons of History,US,0.0907184,10.503333333333334,0.75,0.1,1.3,1.79,4.25,7.8,13.84,0.825,-5.09,-4.71,-4.29,,0.825,-28.38,10.0,0.075,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=-4.29 < Qmin=0.825. Our cost floor is too high relative to market price."
+143914995X,The Lessons of History,UK,0.0907184,7.575,0.75,0.1,1.3,1.29,3.0,0.5,4.79,0.825,1.52,1.8,2.1,0.2,1.52,20.05,102.67,0.77,102.67,True,
+143914995X,The Lessons of History,US,0.0907184,10.503333333333334,0.75,0.1,1.3,1.79,4.25,7.8,13.84,0.825,-5.09,-4.71,-4.29,,0.825,-28.38,10.0,0.075,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=-4.29 < Qmin=0.825. Our cost floor is too high relative to market price."
+1529032172,"Attached: Are you Anxious, Avoidant or Secure? How",UK,0.22226008,8.86,1.12,0.1,1.3,1.51,3.0,0.5,5.01,1.232,2.37,2.69,3.04,0.2,2.37,20.05,111.61,1.25,111.61,True,
+1529032172,"Attached: Are you Anxious, Avoidant or Secure? How",US,0.22226008,11.728333333333333,1.12,0.1,1.3,1.99,4.25,7.8,14.04,1.232,-4.27,-3.84,-3.38,,1.232,-23.2,10.0,0.112,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=-3.38 < Qmin=1.232. Our cost floor is too high relative to market price."
+1546103597,"One Piece Series (Volumes 91-109) Manga Set, by Eiichiro Oda (19 Books)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+1546103597,"One Piece Series (Volumes 91-109) Manga Set, by Eiichiro Oda (19 Books)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+1637995059,The Jujutsu Kaisen Series. 5 Books Collection Set. Vol. 19-Vol. 23 by Gege Akutami,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+1637995059,The Jujutsu Kaisen Series. 5 Books Collection Set. Vol. 19-Vol. 23 by Gege Akutami,US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+163799673X,"My Hero Academia, Vol. 31-40, Collection 10 Books Set, by Kohei Horikoshi",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+163799673X,"My Hero Academia, Vol. 31-40, Collection 10 Books Set, by Kohei Horikoshi",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+163799897X,"Dragon Ball Super Series Vol 1-22, 22 Books Collection Set by Akira Toriyama",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+163799897X,"Dragon Ball Super Series Vol 1-22, 22 Books Collection Set by Akira Toriyama",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+2067955810,"Gold Rush Ranch Series 4 Books Collection Set By Elsie Silver(Off to the Races, The Front Runner, A Photo Finish, A False Start)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+2067955810,"Gold Rush Ranch Series 4 Books Collection Set By Elsie Silver(Off to the Races, The Front Runner, A Photo Finish, A False Start)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+4027876040,"Wings of Fire Series Book 5-8 By Tui T. Sutherland Graphic Novel 4 Books Collection (The Brightest Night, Moon Rising, Winter Turning & Escaping Peril)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+4027876040,"Wings of Fire Series Book 5-8 By Tui T. Sutherland Graphic Novel 4 Books Collection (The Brightest Night, Moon Rising, Winter Turning & Escaping Peril)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+409537263X,Dragon Force Series 2 Books Collection Set (Infini,UK,0.79832192,14.132857142857143,6.61,0.1,1.3,2.4,3.0,0.5,5.9,7.271,5.88,6.39,6.95,,7.271,7.3,10.0,0.661,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=6.95 < Qmin=7.271. Our cost floor is too high relative to market price."
+409537263X,Dragon Force Series 2 Books Collection Set (Infinity's Secret & Devourer's Attack),US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+5103973863,The Bad Guys 5 Books Collection Set By Aaron Blabe,UK,1.46056624,30.518571428571427,14.0,0.1,1.3,5.19,3.5,0.5,9.19,15.4,16.24,17.35,18.55,0.2,16.24,20.01,16.0,2.24,16.0,True,
+5103973863,The Bad Guys 5 Books Collection Set By Aaron Blabey (Episodes 9-18),US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9123464127,City of Ghosts Series Collection 3 Books Set By Vi,UK,0.64863656,21.984615384615385,10.31,0.1,1.3,3.74,3.0,0.5,7.24,11.341,11.08,11.88,12.75,0.15,11.88,14.98,15.23,1.57,15.23,True,
+9123464127,"City of Ghosts Series Collection 3 Books Set By Victoria Schwab (City of Ghosts, Tunnel of Bones, Bridge of Souls)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9123760915,"Dragon Ball Super Series 1 To 5 Books Collection Set (Warriors From Universe 6!, The Winning Universe Is Decided!, Zero Mortal Project!, Last Chance For Hope, The Decisive Battle! Farwell,Trunks!)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9123760915,Dragon Ball Super Series 1 To 5 Books Collection S,US,0.91625584,55.446666666666665,20.23,0.1,1.3,9.43,4.25,7.8,21.48,22.253,24.73,26.73,28.93,0.2,24.73,19.99,22.24,4.5,22.24,True,
+9124086843,Hunger Games Trilogy Series 3 Books Collection Set,UK,1.46056624,26.49,10.96,0.1,1.3,4.5,3.5,0.5,8.5,12.056,13.58,14.53,15.58,0.2,13.58,19.97,23.91,2.62,23.91,True,
+9124086843,"Hunger Games Trilogy Series 3 Books Collection Set By Suzanne Collins (The Hunger Games, Catching Fire, Mockingjay)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124191604,"Colleen Hoover Collection 2 Books Set (Hopeless, L",UK,0.57606184,17.679130434782607,8.29,0.1,1.3,3.01,3.0,0.5,6.51,9.119,8.22,8.86,9.56,0.1,9.56,10.01,15.32,1.27,15.32,True,
+9124191604,"Colleen Hoover Collection 2 Books Set (Hopeless, Losing Hope)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124221546,"City of Ghosts Series 3 Books Collection Set By Victoria Schwab (City of Ghosts, Tunnel of Bones, Bridge of Souls)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124221546,City of Ghosts Series 3 Books Collection Set By Vi,US,0.63956472,38.99,10.31,0.1,1.3,6.63,4.25,7.8,18.68,11.341,13.81,15.22,16.77,0.2,13.81,20.01,33.95,3.5,33.95,True,
+9124229466,Jessie Inchauspe Collection 2 Books Set (Glucose R,UK,1.23830616,30.31692307692308,16.81,0.1,1.3,5.15,3.5,0.5,9.15,18.491,16.11,17.21,18.41,,18.491,9.68,10.0,1.681,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=18.41 < Qmin=18.491. Our cost floor is too high relative to market price."
+9124229466,"Jessie Inchauspe Collection 2 Books Set (Glucose Revolution, The Glucose Goddess Method)",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124231983,"Jessie Inchauspe 2 Books Collection Set (Glucose Goddess Method, Glucose Revolution)",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124231983,Jessie Inchauspe 2 Books Collection Set (Glucose G,US,1.22923432,56.99,16.81,0.1,1.3,9.69,4.95,7.8,22.44,18.491,25.05,27.12,29.37,0.2,25.05,20.0,49.02,8.24,49.02,True,
+9124233684,Dragon Ball Super Series Vol 1-5 Books Collection Set by Akira Toriyama,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124233684,Dragon Ball Super Series Vol 1-5 Books Collection Set by Akira Toriyama,US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+912424788X,Demon Slayer Kimetsu Academy Volume 1-5 Books Collection Set By Natsuki Hokami & Koyoharu Gotouge,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+912424788X,Demon Slayer Kimetsu Academy Volume 1-5 Books Collection Set By Natsuki Hokami & Koyoharu Gotouge,US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+912434981X,Jujutsu Kaisen Series Vol (16-20) Collection 5 Books Set By Gege Akutami:,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+912434981X,Jujutsu Kaisen Series Vol (16-20) Collection 5 Boo,US,0.907184,63.02571428571429,20.23,0.1,1.3,10.71,4.25,7.8,22.76,22.253,29.76,32.04,34.54,0.2,29.76,20.0,47.11,9.53,47.11,True,
+9124350893,Jujutsu Kaisen Series (Vol. 11-20) Collection 10 Books Set By Gege Akutami,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124350893,Jujutsu Kaisen Series (Vol. 11-20) Collection 10 B,US,1.80983208,109.56666666666666,39.11,0.1,1.3,18.63,4.95,7.8,31.38,43.021,59.93,63.9,68.23,0.2,59.93,19.99,53.23,20.82,53.23,True,
+9124357294,Dragon Force Series 2 Books Collection Set (Infinity's Secret & Devourer's Attack),UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+9124357294,Dragon Force Series 2 Books Collection Set (Infini,US,0.453592,33.99,6.61,0.1,1.3,5.78,4.25,7.8,17.83,7.271,10.5,11.73,13.07,0.2,10.5,19.98,58.85,3.89,58.85,True,
+9766704961,One-Punch Man Volume 1-5 Collection 5 Books Set (S,UK,0.0680388,33.542272727272724,20.23,0.1,1.3,5.7,3.0,0.5,9.2,22.253,18.75,19.97,21.29,,22.253,6.64,10.0,2.023,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=21.29 < Qmin=22.253. Our cost floor is too high relative to market price."
+9766704961,One-Punch Man Volume 1-5 Collection 5 Books Set (S,US,0.0680388,62.66,20.23,0.1,1.3,10.65,4.25,7.8,22.7,22.253,29.52,31.79,34.26,0.2,29.52,19.99,45.92,9.29,45.92,True,
+9766704961,One-Punch Man Volume Collection 1-5 5 Books Bundle,UK,0.0680388,33.542272727272724,20.23,0.1,1.3,5.7,3.0,0.5,9.2,22.253,18.75,19.97,21.29,,22.253,6.64,10.0,2.023,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=21.29 < Qmin=22.253. Our cost floor is too high relative to market price."
+9766704961,One-Punch Man Volume Collection 1-5 5 Books Bundle,US,0.0680388,62.66,20.23,0.1,1.3,10.65,4.25,7.8,22.7,22.253,29.52,31.79,34.26,0.2,29.52,19.99,45.92,9.29,45.92,True,
+B07XLKMWZT,One Piece Series: Oda Eiichiro Vol 91-103 Collection 13 book set,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B07XLKMWZT,One Piece Series: Oda Eiichiro Vol 91-103 Collecti,US,2.39042984,130.0,52.59,0.1,1.3,22.1,6.25,7.8,36.15,57.849,72.18,76.89,82.03,0.2,72.18,20.0,37.25,19.59,37.25,True,
+B09B8C4W3L,"Jujutsu Kaisen Manga Set, Vol. 1-10",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B09B8C4W3L,"Jujutsu Kaisen Manga Set, Vol. 1-10",US,1.85065536,96.39,40.46,0.1,1.3,16.39,4.95,7.8,29.14,44.506,51.19,54.68,58.49,0.2,51.19,19.99,26.52,10.73,26.52,True,
+B09KQJNLP2,Demon Slayer: Kimetsu no Yaiba Vol (16-23) 8 Book Collection Set by Koyoharu Gotouge,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B09KQJNLP2,Demon Slayer: Kimetsu no Yaiba Vol (16-23) 8 Book ,US,1.56035648,56.29,31.91,0.1,1.3,9.57,4.95,7.8,22.32,35.101,24.59,26.63,28.85,,35.101,-1.97,10.0,3.191,10.0,False,"No feasible quote. Even at 10% seller ROI, Qmax(10%)=28.85 < Qmin=35.101. Our cost floor is too high relative to market price."
+B0B2V9GK32,JuJuTsu Kaisen Series 1-10 set collection bundle V,UK,1.77808064,87.3125,40.46,0.1,1.3,14.84,3.5,0.5,18.84,44.506,53.92,57.08,60.54,0.2,53.92,20.0,33.27,13.46,33.27,True,
+B0B2V9GK32,JuJuTsu Kaisen Series 1-10 set collection bundle Volumes (paperback) by Gege Akutami,US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0B3DB4Q75,Dragon Ball Super Series Vol 1-20 Books Collection Set by Akira Toriyama,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0B3DB4Q75,Dragon Ball Super Series Vol 1-20 Books Collection,US,3.55162536,204.066,80.01,0.1,1.3,34.69,6.25,7.8,48.74,88.011,121.32,128.71,136.77,0.2,121.32,20.0,51.63,41.31,51.63,True,
+B0B5N1DCJ2,Hopeless 2 Books Collection Set By Colleen Hoover (Hopeless & Losing Hope),UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0B5N1DCJ2,Hopeless 2 Books Collection Set By Colleen Hoover ,US,0.64863656,31.157333333333334,8.29,0.1,1.3,5.3,4.25,7.8,17.35,9.119,8.61,9.74,10.97,0.15,9.74,15.01,17.49,1.45,17.49,True,
+B0CLF3H95P,My Hero Academia 5 Books Collection Set Volumes (31-35) By Kohei Horikoshi,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0CLF3H95P,My Hero Academia 5 Books Collection Set Volumes (3,US,0.94800728,48.82333333333333,17.98,0.1,1.3,8.3,4.25,7.8,20.35,19.778,20.34,22.11,24.03,0.2,20.34,19.99,13.13,2.36,13.13,True,
+B0F38CZDDF,"The Hunger Games (Deluxe Edition) Series 4-Book Collection Set - The Hunger Games, Catching Fire, Mockingjay, The Ballad of Songbirds & Snakes",UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0F38CZDDF,"The Hunger Games (Deluxe Edition) Series 4-Book Collection Set - The Hunger Games, Catching Fire, Mockingjay, The Ballad of Songbirds & Snakes",US,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0FCFLLM8L,Demon Slayer: Kimetsu Academy Series 5-Book Collection Set (Vol.1 to Vol.5) - Fun School-Set Slice‑of‑Life Manga Featuring Tanjiro & Friends,UK,,,,,,,,,,,,,,,,,,,,False,No buy box data available
+B0FCFLLM8L,Demon Slayer: Kimetsu Academy Series 5-Book Collection Set (Vol.1 to Vol.5) - Fun School-Set Slice‑of‑Life Manga Featuring Tanjiro & Friends,US,,,,,,,,,,,,,,,,,,,,False,No buy box data available

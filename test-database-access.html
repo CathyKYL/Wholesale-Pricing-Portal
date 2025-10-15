@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Database Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #2980b9; }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Database Access Test</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Check backfill_test.dynamic_data</h3>
+        <button onclick="testDynamicData()">Test Dynamic Data Access</button>
+        <div id="dynamic-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Check public.products Table</h3>
+        <button onclick="testProductsTable()">Test Products Table</button>
+        <div id="products-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 3: Check public.catalog_rows Table</h3>
+        <button onclick="testCatalogRows()">Test Catalog Rows</button>
+        <div id="catalog-result"></div>
+    </div>
+
+    <script>
+        // Initialize Supabase
+        const supabase = window.supabase.createClient(
+            'https://mofhylcyainzwbrcmrqg.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vZmh5bGN5YWluendicmNtcnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzNDg1MTQsImV4cCI6MjA3NTkyNDUxNH0.TeaalZbVrSkqAszpZxPDSJUdoXL0wsg9veDhS1v8Bj0'
+        );
+
+        async function testDynamicData() {
+            const resultDiv = document.getElementById('dynamic-result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+
+            try {
+                // Test direct access to backfill_test.dynamic_data
+                const { data, error } = await supabase
+                    .schema('backfill_test')
+                    .from('dynamic_data')
+                    .select('asin, marketplace, fetch_date, current_buybox_price')
+                    .limit(5);
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Error: ${error.message}</p>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Success! Found ${data.length} records</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p>`;
+            }
+        }
+
+        async function testProductsTable() {
+            const resultDiv = document.getElementById('products-result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+
+            try {
+                // Test access to public.products
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('asin, marketplace, our_price, package_weight')
+                    .limit(5);
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Error: ${error.message}</p>
+                        <p>This table might not exist. Try catalog_rows instead.</p>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Success! Found ${data.length} products</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <p><strong>👍 Your Edge Function will work with this table!</strong></p>
+                    `;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p>`;
+            }
+        }
+
+        async function testCatalogRows() {
+            const resultDiv = document.getElementById('catalog-result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+
+            try {
+                // Test access to public.catalog_rows
+                const { data, error } = await supabase
+                    .from('catalog_rows')
+                    .select('asin, marketplace, our_price, package_weight, title')
+                    .limit(5);
+
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Error: ${error.message}</p>
+                        <p>This table might not exist or have different columns.</p>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Success! Found ${data.length} items</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                        <p><strong>⚠️ Edge Function needs to be updated to use 'catalog_rows' instead of 'products'</strong></p>
+                    `;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<p class="error">❌ Exception: ${err.message}</p>`;
+            }
+        }
+
+        console.log('✅ Test page loaded. Click buttons to test database access.');
+    </script>
+</body>
+</html>
+
+
+
+

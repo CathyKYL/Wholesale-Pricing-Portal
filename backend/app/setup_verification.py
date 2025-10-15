@@ -117,3 +117,7 @@ print("  3. Run: python keepa_ingestor.py --backfill  (to load 360 days of data)
 print("  4. Run: python keepa_ingestor.py --daily  (for daily updates, or schedule it)")
 print("=" * 100 + "\n")
 
+
+
+
+

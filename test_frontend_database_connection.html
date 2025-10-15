@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+        .result.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            display: block;
+        }
+        .product-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            background: #f9f9f9;
+        }
+        .product-item {
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .step {
+            margin-bottom: 30px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #2196F3;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🔌 Database Connection Test</h1>
+        <p style="color: #666; margin-bottom: 30px;">
+            This tool will test your PostgreSQL (Supabase) connection and fetch products from your database.
+        </p>
+
+        <div class="instructions">
+            <strong>📝 How to get your credentials:</strong><br>
+            1. Go to your Supabase dashboard<br>
+            2. Click <strong>Settings</strong> → <strong>API</strong><br>
+            3. Copy <strong>Project URL</strong> and <strong>anon public</strong> key below
+        </div>
+
+        <!-- Step 1: Enter Credentials -->
+        <div class="step">
+            <h3><span class="step-number">1</span>Enter Supabase Credentials</h3>
+            
+            <div class="form-group">
+                <label for="supabase-url">Supabase URL:</label>
+                <input 
+                    type="text" 
+                    id="supabase-url" 
+                    placeholder="https://your-project.supabase.co"
+                    value="">
+            </div>
+
+            <div class="form-group">
+                <label for="supabase-key">Supabase Anon Key:</label>
+                <input 
+                    type="text" 
+                    id="supabase-key" 
+                    placeholder="eyJ..."
+                    value="">
+            </div>
+        </div>
+
+        <!-- Step 2: Test Connection -->
+        <div class="step">
+            <h3><span class="step-number">2</span>Test Connection</h3>
+            <button onclick="testConnection()" id="test-btn">
+                Test Database Connection
+            </button>
+            <div id="connection-result" class="result"></div>
+        </div>
+
+        <!-- Step 3: Fetch Products -->
+        <div class="step">
+            <h3><span class="step-number">3</span>Fetch Products</h3>
+            <button onclick="fetchProducts()" id="fetch-btn" disabled>
+                Fetch Products from Database
+            </button>
+            <div id="products-result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let supabaseClient = null;
+
+        // Test database connection
+        async function testConnection() {
+            const url = document.getElementById('supabase-url').value.trim();
+            const key = document.getElementById('supabase-key').value.trim();
+            const resultDiv = document.getElementById('connection-result');
+            const testBtn = document.getElementById('test-btn');
+            const fetchBtn = document.getElementById('fetch-btn');
+
+            // Reset
+            resultDiv.className = 'result';
+            resultDiv.innerHTML = '';
+            fetchBtn.disabled = true;
+
+            // Validate inputs
+            if (!url || !key) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ Please enter both URL and Anon Key';
+                return;
+            }
+
+            if (!url.includes('supabase.co')) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ Invalid Supabase URL format. Should be: https://your-project.supabase.co';
+                return;
+            }
+
+            if (!key.startsWith('eyJ')) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ Invalid Anon Key format. Should start with: eyJ...';
+                return;
+            }
+
+            // Show loading
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '⏳ Connecting to database...';
+
+            try {
+                // Create Supabase client
+                supabaseClient = supabase.createClient(url, key);
+
+                // Test connection with a simple query
+                console.log('Testing connection to:', url);
+                
+                const { count, error } = await supabaseClient
+                    .from('products')
+                    .select('*', { count: 'exact', head: true });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Success!
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    ✅ <strong>Connection Successful!</strong><br>
+                    📊 Found ${count} products in database<br>
+                    🔗 Connected to: ${url}<br><br>
+                    <strong>Next:</strong> Click "Fetch Products" below to see your data
+                `;
+
+                // Enable fetch button
+                fetchBtn.disabled = false;
+
+                // Save credentials to localStorage for convenience
+                localStorage.setItem('supabase_url', url);
+                localStorage.setItem('supabase_key', key);
+
+            } catch (error) {
+                console.error('Connection error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    ❌ <strong>Connection Failed</strong><br><br>
+                    <strong>Error:</strong> ${error.message}<br><br>
+                    <strong>Possible causes:</strong><br>
+                    • Wrong URL or API key<br>
+                    • Database doesn't have a 'products' table<br>
+                    • Network/firewall issue<br>
+                    • Supabase project paused<br><br>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'Test Database Connection';
+            }
+        }
+
+        // Fetch products from database
+        async function fetchProducts() {
+            const resultDiv = document.getElementById('products-result');
+            const fetchBtn = document.getElementById('fetch-btn');
+
+            if (!supabaseClient) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ Please test connection first';
+                return;
+            }
+
+            // Show loading
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching...';
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '⏳ Fetching products from database...';
+
+            try {
+                // Fetch all products
+                const { data, error } = await supabaseClient
+                    .from('products')
+                    .select(`
+                        id,
+                        asin,
+                        marketplace,
+                        title,
+                        author,
+                        our_price,
+                        rrp,
+                        available_stock,
+                        isbn13,
+                        category_lvl1,
+                        category_lvl2,
+                        image_url
+                    `)
+                    .order('title');
+
+                if (error) {
+                    throw error;
+                }
+
+                // Count by marketplace
+                const usProducts = data.filter(p => p.marketplace === 'US').length;
+                const ukProducts = data.filter(p => p.marketplace === 'UK').length;
+
+                // Display results
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    ✅ <strong>Successfully fetched ${data.length} products!</strong><br><br>
+                    📊 <strong>Breakdown:</strong><br>
+                    • US Marketplace: ${usProducts} products<br>
+                    • UK Marketplace: ${ukProducts} products<br><br>
+                    <strong>Sample Products:</strong>
+                    <div class="product-list">
+                        ${data.slice(0, 10).map(p => `
+                            <div class="product-item">
+                                <strong>${p.title || 'Untitled'}</strong><br>
+                                ASIN: ${p.asin} | Market: ${p.marketplace} | Price: $${p.our_price || 'N/A'}
+                            </div>
+                        `).join('')}
+                        ${data.length > 10 ? `<div class="product-item" style="text-align: center; font-style: italic;">... and ${data.length - 10} more products</div>` : ''}
+                    </div>
+                    <br>
+                    <strong>✅ Database connection is working perfectly!</strong><br>
+                    <strong>Next step:</strong> Update your config.js with these credentials.
+                `;
+
+                console.log('Fetched products:', data);
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    ❌ <strong>Failed to fetch products</strong><br><br>
+                    <strong>Error:</strong> ${error.message}<br><br>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Fetch Products from Database';
+            }
+        }
+
+        // Load saved credentials on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUrl = localStorage.getItem('supabase_url');
+            const savedKey = localStorage.getItem('supabase_key');
+
+            if (savedUrl) {
+                document.getElementById('supabase-url').value = savedUrl;
+            }
+            if (savedKey) {
+                document.getElementById('supabase-key').value = savedKey;
+            }
+
+            if (savedUrl && savedKey) {
+                const hint = document.createElement('div');
+                hint.className = 'result info';
+                hint.innerHTML = '💡 Found saved credentials. Click "Test Database Connection" to verify.';
+                hint.style.display = 'block';
+                hint.style.marginTop = '10px';
+                document.getElementById('test-btn').parentElement.appendChild(hint);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Generator Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-left: 4px solid #3498db;
+        }
+        .result-item {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .result-label {
+            font-weight: bold;
+            color: #34495e;
+        }
+        .result-value {
+            color: #2c3e50;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .instructions {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .instructions ol {
+            margin: 10px 0;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Quote Generator Integration Test</h1>
+        
+        <div class="instructions">
+            <h3>📋 Before Testing:</h3>
+            <ol>
+                <li><strong>Start the backend API:</strong>
+                    <br>Run <code>START_BACKEND_API.bat</code> or manually:
+                    <br><code>cd backend/app && uvicorn main:app --reload --port 8000</code>
+                </li>
+                <li><strong>Verify backend is running:</strong>
+                    <br>Visit <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a>
+                </li>
+                <li>Click "Test Backend Connection" below</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>Step 1: Test Backend Connection</h3>
+            <div id="backend-status" class="status pending">⏳ Click button to test...</div>
+            <button onclick="testBackendConnection()">Test Backend Connection</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Step 2: Test Quote Generation</h3>
+            <div id="quote-status" class="status pending">⏳ Waiting for backend test...</div>
+            <button id="test-quote-btn" onclick="testQuoteGeneration()" disabled>Generate Test Quote</button>
+            <div id="quote-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Step 3: View Console Logs</h3>
+            <p>Open browser console (F12) to see detailed logging:</p>
+            <pre>Press F12 → Console tab</pre>
+            <button onclick="openDevTools()">View Detailed Logs</button>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ Next Steps</h3>
+            <p>If all tests pass:</p>
+            <ol>
+                <li>Open your main website: <code>Front end/index.html</code></li>
+                <li>Search for a product (try ASIN: 143914995X)</li>
+                <li>Click the product to view details</li>
+                <li>Watch the quote price calculate in real-time!</li>
+            </ol>
+            <button onclick="openMainSite()">Open Main Website</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+
+        async function testBackendConnection() {
+            const statusDiv = document.getElementById('backend-status');
+            statusDiv.className = 'status pending';
+            statusDiv.textContent = '⏳ Testing connection to ' + API_BASE_URL + '...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = `
+                        ✅ Backend connected successfully!<br>
+                        Environment: ${data.environment}<br>
+                        Status: ${data.status}
+                    `;
+                    document.getElementById('test-quote-btn').disabled = false;
+                    document.getElementById('quote-status').className = 'status pending';
+                    document.getElementById('quote-status').textContent = '⏳ Ready to test quote generation';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    ❌ Cannot connect to backend<br>
+                    Error: ${error.message}<br>
+                    <br>
+                    <strong>Make sure backend is running:</strong><br>
+                    1. Run START_BACKEND_API.bat<br>
+                    2. OR manually: cd backend/app && uvicorn main:app --reload --port 8000<br>
+                    3. Visit <a href="${API_BASE_URL}/docs" target="_blank">${API_BASE_URL}/docs</a>
+                `;
+                console.error('Backend connection error:', error);
+            }
+        }
+
+        async function testQuoteGeneration() {
+            const statusDiv = document.getElementById('quote-status');
+            const resultDiv = document.getElementById('quote-result');
+            
+            statusDiv.className = 'status pending';
+            statusDiv.textContent = '⏳ Generating quote for test product (ASIN: 143914995X)...';
+            resultDiv.innerHTML = '';
+
+            try {
+                const requestBody = {
+                    asin: '143914995X',
+                    marketplace: 'US',
+                    m: 0.10,
+                    fx_gbp_to_usd: 1.30
+                };
+
+                console.log('Sending quote request:', requestBody);
+
+                const response = await fetch(`${API_BASE_URL}/api/quote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+
+                const quote = await response.json();
+                console.log('Quote generated:', quote);
+
+                if (quote.feasible) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Quote generated successfully!';
+                    
+                    resultDiv.className = 'result';
+                    resultDiv.innerHTML = `
+                        <h4>📊 Quote Results:</h4>
+                        <div class="result-item">
+                            <span class="result-label">Wholesale Quote (Q):</span>
+                            <span class="result-value">$${quote.quote_q.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Seller ROI:</span>
+                            <span class="result-value">${quote.seller_roi_pct.toFixed(2)}%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Our ROI:</span>
+                            <span class="result-value">${quote.our_roi_pct.toFixed(2)}%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Buy Box Average (30d):</span>
+                            <span class="result-value">$${quote.bb_avg.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Amazon Fee (AF):</span>
+                            <span class="result-value">$${quote.af.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Fulfillment Cost (FC):</span>
+                            <span class="result-value">$${quote.fc.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Shipping Cost (SC):</span>
+                            <span class="result-value">$${quote.sc.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Our Margin:</span>
+                            <span class="result-value">$${quote.margin_abs.toFixed(2)} (${quote.margin_pct.toFixed(2)}%)</span>
+                        </div>
+                    `;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Quote not feasible: ' + quote.reason;
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    ❌ Quote generation failed<br>
+                    Error: ${error.message}<br>
+                    <br>
+                    <strong>Possible causes:</strong><br>
+                    - No Buy Box data for this ASIN<br>
+                    - Missing product data in database<br>
+                    - Database connection issue<br>
+                    <br>
+                    Check console (F12) for detailed error
+                `;
+                console.error('Quote generation error:', error);
+            }
+        }
+
+        function openDevTools() {
+            alert('Press F12 to open Developer Tools, then go to the Console tab to see detailed logs.');
+        }
+
+        function openMainSite() {
+            window.open('Front end/index.html', '_blank');
+        }
+
+        // Auto-test backend on load
+        window.addEventListener('load', () => {
+            console.log('Quote Generator Test Page Loaded');
+            console.log('API Base URL:', API_BASE_URL);
+            console.log('Click "Test Backend Connection" to begin testing');
+        });
+    </script>
+</body>
+</html>
+

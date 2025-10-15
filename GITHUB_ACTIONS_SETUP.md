@@ -257,3 +257,7 @@ python backend/app/keepa_ingestor.py --daily
 
 Once you push to GitHub and add the secrets, your daily updates will run automatically! 🚀
 
+
+
+
+

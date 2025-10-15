@@ -30,7 +30,7 @@ Usage:
 import sys
 import os
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import time
 import json
@@ -75,6 +75,15 @@ Session = sessionmaker(bind=engine)
 
 # ==================== HELPER FUNCTIONS ====================
 
+# Keepa epoch: 2011-01-01 00:00:00 UTC
+KEEPA_EPOCH = datetime(2011, 1, 1, tzinfo=timezone.utc)
+
+def keepa_minutes_to_dt(minutes):
+    """Convert Keepa timestamp (minutes since 2011-01-01) to datetime."""
+    if minutes == -1 or minutes is None:
+        return None
+    return KEEPA_EPOCH + timedelta(minutes=minutes)
+
 def log_raw_response(asin, marketplace, mode, raw_response, status='success', error_msg=None, tokens_used=0, duration_ms=0):
     """
     Log raw Keepa API response to database for debugging.
@@ -92,8 +101,8 @@ def log_raw_response(asin, marketplace, mode, raw_response, status='success', er
     try:
         with engine.connect() as conn:
             conn.execute(text("""
-                INSERT INTO dynamic.keepa_raw_log 
-                (asin, marketplace, fetch_mode, raw_response, status, error_message, tokens_used, api_call_duration_ms)
+                INSERT INTO backfill_test.keepa_raw_log 
+                (asin, marketplace, mode, raw_response, status, error_message, tokens_consumed, duration_ms)
                 VALUES (:asin, :marketplace, :mode, :raw_response, :status, :error_msg, :tokens, :duration)
             """), {
                 'asin': asin,
@@ -126,8 +135,8 @@ def parse_keepa_history(product, marketplace):
     """
     asin = product.get('asin', '')
     
-    # Keepa time is in minutes since Keepa epoch (21 Dec 2011)
-    keepa_epoch = datetime(2011, 12, 21)
+    # Keepa time is in minutes since Keepa epoch (1 Jan 2011)
+    # Use the global KEEPA_EPOCH constant
     
     def keepa_price_to_decimal(val):
         """Convert Keepa price (pennies) to Decimal. Returns None if invalid."""
@@ -146,11 +155,12 @@ def parse_keepa_history(product, marketplace):
                 time_minutes = history_array[i]
                 value = history_array[i + 1]
                 
-                if time_minutes and value is not None and value != -1:
-                    date_obj = keepa_epoch + timedelta(minutes=time_minutes)
-                    date_key = date_obj.date()
-                    # Keep the last value for each date
-                    result[date_key] = value
+                if time_minutes != -1 and value is not None and value != -1:
+                    date_obj = keepa_minutes_to_dt(time_minutes)
+                    if date_obj:
+                        date_key = date_obj.date()
+                        # Keep the last value for each date
+                        result[date_key] = value
         
         return result
     
@@ -158,10 +168,10 @@ def parse_keepa_history(product, marketplace):
     csv_data = product.get('csv', [])
     
     # Parse individual price histories
-    amazon_prices = parse_history_array(csv_data[0] if len(csv_data) > 0 else [])
-    new_prices = parse_history_array(csv_data[1] if len(csv_data) > 1 else [])
-    used_prices = parse_history_array(csv_data[3] if len(csv_data) > 3 else [])
-    buybox_prices = parse_history_array(csv_data[18] if len(csv_data) > 18 else [])
+    amazon_prices = parse_history_array(csv_data[0] if len(csv_data) > 0 and csv_data[0] is not None else [])
+    new_prices = parse_history_array(csv_data[1] if len(csv_data) > 1 and csv_data[1] is not None else [])
+    used_prices = parse_history_array(csv_data[3] if len(csv_data) > 3 and csv_data[3] is not None else [])
+    buybox_prices = parse_history_array(csv_data[18] if len(csv_data) > 18 and csv_data[18] is not None else [])
     
     # Extract sales rank history from salesRanks dictionary
     # NOTE: Sales ranks are stored as actual integers, NOT multiplied by 100 like prices
@@ -175,11 +185,12 @@ def parse_keepa_history(product, marketplace):
                 time_minutes = rank_history[i]
                 rank_value = rank_history[i + 1]
                 
-                if time_minutes and rank_value is not None and rank_value != -1:
-                    date_obj = keepa_epoch + timedelta(minutes=time_minutes)
-                    date_key = date_obj.date()
-                    # Sales rank is already an integer, don't convert like prices!
-                    sales_ranks[date_key] = int(rank_value)
+                if time_minutes != -1 and rank_value is not None and rank_value != -1:
+                    date_obj = keepa_minutes_to_dt(time_minutes)
+                    if date_obj:
+                        date_key = date_obj.date()
+                        # Sales rank is already an integer, don't convert like prices!
+                        sales_ranks[date_key] = int(rank_value)
     
     # Get all unique dates from all histories
     all_dates = set()
@@ -230,15 +241,25 @@ def parse_keepa_history(product, marketplace):
         }]
     
     # Create records for each date
-    # Filter to only keep dates within reasonable range (last 400 days, allowing some buffer)
+    # Filter to only keep dates within the last 360 days (no future dates)
     today = datetime.now().date()
-    cutoff_date = today - timedelta(days=400)
+    cutoff_date = today - timedelta(days=360)
+    
+    # Sanity check: ensure no future dates
+    future_dates = [d for d in all_dates if d > today]
+    if future_dates:
+        print(f"      ⚠️  WARNING: Found {len(future_dates)} future dates, filtering them out")
+        print(f"         Future date range: {min(future_dates)} to {max(future_dates)}")
+    
+    # Filter to only historical dates within 360 days
+    historical_dates = [d for d in all_dates if d >= cutoff_date and d <= today]
+    
+    print(f"      📊 Date filtering: {len(all_dates)} total → {len(historical_dates)} historical (last 360 days)")
+    if historical_dates:
+        print(f"      ✅ 360d window: {min(historical_dates)} → {max(historical_dates)} ({len(historical_dates)} points, future=0)")
     
     records = []
-    for date_key in sorted(all_dates):
-        # Skip dates that are too old or in the future
-        if date_key < cutoff_date or date_key > today:
-            continue
+    for date_key in sorted(historical_dates):
         
         # Get values for this date (or None if not available)
         amazon_price = keepa_price_to_decimal(amazon_prices.get(date_key))
@@ -273,6 +294,128 @@ def parse_keepa_history(product, marketplace):
             'current_buybox_price': buybox_price,
             'sales_rank_current': sales_rank,
             'num_sellers': None,  # Not available in historical data
+            'last_updated': datetime.now()
+        })
+    
+    # If no records were created (all dates filtered out), fall back to current snapshot
+    if not records:
+        print(f"      ⚠️  No historical records created, falling back to current snapshot")
+        
+        stats = product.get('stats', {})
+        current = stats.get('current', [])
+        
+        # Check if current data is available
+        if len(current) == 0:
+            print(f"      ⚠️  No current data available, using most recent historical data")
+            
+            # Use the most recent historical data from CSV arrays
+            most_recent_date = None
+            best_price = None
+            best_sales_rank = None
+            
+            # Check all price arrays for the most recent data
+            price_arrays = [
+                (csv_data[0], "Amazon price"),
+                (csv_data[1], "New price"), 
+                (csv_data[2], "Used price"),
+                (csv_data[4], "Collectible price"),
+            ]
+            
+            # Add BuyBox price if available
+            if len(csv_data) > 18 and csv_data[18]:
+                price_arrays.append((csv_data[18], "BuyBox price"))
+            
+            for price_array, price_type in price_arrays:
+                if price_array and len(price_array) >= 2:
+                    # Get the most recent price from this array
+                    for i in range(len(price_array) - 2, -1, -2):  # Go backwards through timestamps
+                        if i + 1 < len(price_array):
+                            timestamp = price_array[i]
+                            price = price_array[i + 1]
+                            
+                            if timestamp != -1 and price != -1:
+                                date = keepa_minutes_to_dt(timestamp)
+                                if date:
+                                    # Only use historical dates (not future)
+                                    if date.date() <= datetime.now().date():
+                                        if most_recent_date is None or date.date() > most_recent_date:
+                                            most_recent_date = date.date()
+                                            best_price = price
+                                            print(f"      📅 Using {price_type} from {most_recent_date}: ${price/100:.2f}")
+                                        break
+            
+            # Convert price to decimal
+            if best_price is not None:
+                buybox_price = Decimal(str(best_price / 100.0))
+            else:
+                buybox_price = None
+                print(f"      ❌ No valid historical prices found")
+            
+            # Get most recent sales rank
+            if root_category and str(root_category) in product.get('salesRanks', {}):
+                rank_history = product.get('salesRanks', {})[str(root_category)]
+                if isinstance(rank_history, list) and len(rank_history) >= 2:
+                    # Find the most recent historical rank
+                    for i in range(len(rank_history) - 2, -1, -2):
+                        if i + 1 < len(rank_history):
+                            timestamp = rank_history[i]
+                            rank = rank_history[i + 1]
+                            
+                            if timestamp != -1 and rank != -1:
+                                date = keepa_minutes_to_dt(timestamp)
+                                if date and date.date() <= datetime.now().date():
+                                    best_sales_rank = rank
+                                    break
+            
+            current_rank = best_sales_rank if best_sales_rank and best_sales_rank != -1 else None
+            num_sellers = None
+            
+        else:
+            # Use current data if available
+            print(f"      ✅ Using current data")
+            
+            # Ensure array has enough elements
+            while len(current) < 34:
+                current.append(-1)
+            
+            # Extract current prices
+            buybox_price = keepa_price_to_decimal(current[18] if len(current) > 18 else -1)
+            amazon_price_val = keepa_price_to_decimal(current[0] if len(current) > 0 else -1)
+            new_price = keepa_price_to_decimal(current[1] if len(current) > 1 else -1)
+            used_price = keepa_price_to_decimal(current[2] if len(current) > 2 else -1)
+            collectible_price = keepa_price_to_decimal(current[4] if len(current) > 4 else -1)
+            
+            # Enhanced fallback chain for BuyBox price
+            if buybox_price is None:
+                if new_price is not None:
+                    buybox_price = new_price
+                    print(f"      🔄 Using New price as fallback: ${buybox_price}")
+                elif amazon_price_val is not None:
+                    buybox_price = amazon_price_val
+                    print(f"      🔄 Using Amazon price as fallback: ${buybox_price}")
+                elif used_price is not None:
+                    buybox_price = used_price
+                    print(f"      🔄 Using Used price as fallback: ${buybox_price}")
+                elif collectible_price is not None:
+                    buybox_price = collectible_price
+                    print(f"      🔄 Using Collectible price as fallback: ${buybox_price}")
+            
+            # Get current sales rank
+            current_rank = None
+            if root_category and str(root_category) in product.get('salesRanks', {}):
+                rank_history = product.get('salesRanks', {})[str(root_category)]
+                if isinstance(rank_history, list) and len(rank_history) >= 2:
+                    current_rank = rank_history[-1] if len(rank_history) % 2 == 1 else rank_history[-2]
+            
+            num_sellers = current[11] if len(current) > 11 and current[11] != -1 else None
+        
+        records.append({
+            'asin': asin,
+            'marketplace': marketplace,
+            'fetch_date': most_recent_date if 'most_recent_date' in locals() and most_recent_date else datetime.now().date(),
+            'current_buybox_price': buybox_price,
+            'sales_rank_current': current_rank if current_rank and current_rank != -1 else None,
+            'num_sellers': num_sellers,
             'last_updated': datetime.now()
         })
     
@@ -342,11 +485,12 @@ def fetch_keepa_data(mode="daily", test=False):
             
             if mode == 'backfill':
                 # Request 360 days of history
-                # history=1 enables price history
-                # range=x requests last x days
-                params['history'] = 1
-                params['range'] = 360
-                params['stats'] = 365  # Get 365 days of statistics
+                # days=360 requests last 360 days of data
+                # buybox=1 enables BuyBox price data
+                # offers=20 gets offer count data
+                params['days'] = 360
+                params['buybox'] = 1
+                params['offers'] = 20
             else:
                 # Daily mode: just current snapshot (cached for 1 hour by Keepa)
                 params['stats'] = 1
@@ -413,6 +557,27 @@ def fetch_keepa_data(mode="daily", test=False):
                         
                         # Extract BuyBox price from stats['current'] array
                         buybox_price = keepa_price_to_decimal(current[18]) # Index 18
+                        
+                        # Enhanced fallback logic for BuyBox price
+                        # Priority: BuyBox > NEW > Amazon > Used > Collectible
+                        if buybox_price is None:
+                            new_price = keepa_price_to_decimal(current[1] if len(current) > 1 else -1)
+                            amazon_price = keepa_price_to_decimal(current[0] if len(current) > 0 else -1)
+                            used_price = keepa_price_to_decimal(current[2] if len(current) > 2 else -1)
+                            collectible_price = keepa_price_to_decimal(current[4] if len(current) > 4 else -1)
+                            
+                            if new_price is not None:
+                                buybox_price = new_price
+                                print(f"         🔄 Using New price as fallback: ${buybox_price}")
+                            elif amazon_price is not None:
+                                buybox_price = amazon_price
+                                print(f"         🔄 Using Amazon price as fallback: ${buybox_price}")
+                            elif used_price is not None:
+                                buybox_price = used_price
+                                print(f"         🔄 Using Used price as fallback: ${buybox_price}")
+                            elif collectible_price is not None:
+                                buybox_price = collectible_price
+                                print(f"         🔄 Using Collectible price as fallback: ${buybox_price}")
                         
                         # Extract sales rank from salesRanks dict
                         sales_ranks = product.get('salesRanks', {})
@@ -531,7 +696,7 @@ def forward_fill_prices(df):
 
 def save_to_postgres(df):
     """
-    Save or update records in dynamic.keepa_daily_data table.
+    Save or update records in backfill_test.dynamic_data table.
     
     Uses ON CONFLICT to handle duplicates (upsert).
     
@@ -553,7 +718,7 @@ def save_to_postgres(df):
     # Also use pandas built-in method
     df = df.where(pd.notnull(df), None)
     
-    print(f"\n💾 Saving {len(df)} records to PostgreSQL...")
+    print(f"\n💾 Saving {len(df)} records to backfill_test.dynamic_data...")
     
     saved_count = 0
     
@@ -562,20 +727,20 @@ def save_to_postgres(df):
             for idx, row in df.iterrows():
                 # Upsert: insert or update on conflict
                 conn.execute(text("""
-                    INSERT INTO dynamic.keepa_daily_data (
-                        asin, marketplace, fetch_date,
-                        current_buybox_price, sales_rank_current, num_sellers, last_updated
-                    ) VALUES (
-                        :asin, :marketplace, :fetch_date,
-                        :buybox, :rank, :sellers, :updated
-                    )
-                    ON CONFLICT (asin, marketplace, fetch_date)
-                    DO UPDATE SET
-                        current_buybox_price = EXCLUDED.current_buybox_price,
-                        sales_rank_current = EXCLUDED.sales_rank_current,
-                        num_sellers = EXCLUDED.num_sellers,
-                        last_updated = EXCLUDED.last_updated
-                """), {
+                        INSERT INTO backfill_test.dynamic_data (
+                            asin, marketplace, fetch_date,
+                            current_buybox_price, sales_rank_current, num_sellers, last_updated
+                        ) VALUES (
+                            :asin, :marketplace, :fetch_date,
+                            :buybox, :rank, :sellers, :updated
+                        )
+                        ON CONFLICT (asin, marketplace, fetch_date)
+                        DO UPDATE SET
+                            current_buybox_price = EXCLUDED.current_buybox_price,
+                            sales_rank_current = EXCLUDED.sales_rank_current,
+                            num_sellers = EXCLUDED.num_sellers,
+                            last_updated = EXCLUDED.last_updated
+                    """), {
                     'asin': row['asin'],
                     'marketplace': row['marketplace'],
                     'fetch_date': row['fetch_date'],
@@ -598,16 +763,16 @@ def save_to_postgres(df):
 
 def compute_trends():
     """
-    Compute rolling trends from stored data in dynamic.keepa_daily_data.
+    Compute rolling trends from stored data in backfill_test.dynamic_data.
     
-    Materializes results into dynamic.keepa_trends table (weekly aggregates).
+    Materializes results into backfill_test.keepa_trends table (weekly aggregates).
     Does NOT call Keepa API - uses only stored data.
     
     Returns:
         Number of trend records computed
     """
     print("\n" + "=" * 100)
-    print("📈 COMPUTING TRENDS FROM STORED DATA")
+    print("📈 COMPUTING TRENDS FROM STORED DATA (backfill_test.dynamic_data)")
     print("=" * 100)
     
     try:
@@ -616,7 +781,7 @@ def compute_trends():
             SELECT 
                 asin, marketplace, fetch_date,
                 current_buybox_price, sales_rank_current
-            FROM dynamic.keepa_daily_data
+            FROM backfill_test.dynamic_data
             WHERE fetch_date >= CURRENT_DATE - INTERVAL '360 days'
             ORDER BY asin, marketplace, fetch_date
         """
@@ -698,19 +863,19 @@ def compute_trends():
                     'computed_at': datetime.now()
                 })
         
-        # Save to dynamic.keepa_trends
+        # Save to backfill_test.keepa_trends
         trends_df = pd.DataFrame(trends_records)
         
         # Clean DataFrame: replace NaN with None (required for PostgreSQL)
         trends_df = trends_df.replace({pd.NA: None, float('nan'): None})
         trends_df = trends_df.where(pd.notnull(trends_df), None)
         
-        print(f"💾 Saving {len(trends_df)} weekly trend records...")
+        print(f"💾 Saving {len(trends_df)} weekly trend records to backfill_test.keepa_trends...")
         
         with engine.connect() as conn:
             for idx, row in trends_df.iterrows():
                 conn.execute(text("""
-                    INSERT INTO dynamic.keepa_trends (
+                    INSERT INTO backfill_test.keepa_trends (
                         asin, marketplace, week_start_date,
                         avg_buybox_price, min_buybox_price, max_buybox_price, price_volatility,
                         avg_sales_rank, min_sales_rank, max_sales_rank, rank_volatility,

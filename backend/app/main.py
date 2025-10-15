@@ -15,16 +15,28 @@ Usage:
     uvicorn main:app --host 0.0.0.0 --port $PORT
 """
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pydantic import BaseModel
+from decimal import Decimal
 import logging
+import os
+import sys
 
 # Import our modules
 from config import settings
 from db import get_db, init_db
 from models import CatalogRow
+
+# Add parent directory to path for book_portal_pricing imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Import pricing calculator
+from book_portal_pricing.calculator import calculate_quote, Inputs, Outputs
+from book_portal_pricing.supabase_repo import SupabaseRepo
+from supabase import create_client
 
 # Configure logging
 logging.basicConfig(
@@ -32,6 +44,62 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ========== PYDANTIC MODELS FOR API ==========
+
+class QuoteRequest(BaseModel):
+    """
+    Request model for quote generation
+    
+    Attributes:
+        asin: Product ASIN identifier
+        marketplace: 'US' or 'UK'
+        m: Our ROI floor (default 0.10 = 10%)
+        fx_gbp_to_usd: GBP to USD exchange rate (default 1.30)
+    """
+    asin: str
+    marketplace: str
+    m: float = 0.10
+    fx_gbp_to_usd: float = 1.30
+
+class QuoteResponse(BaseModel):
+    """
+    Response model for quote generation
+    
+    Contains all calculated values from the pricing calculator
+    """
+    feasible: bool
+    reason: Optional[str] = None
+    quote_q: float
+    seller_roi_pct: float
+    our_roi_pct: float
+    margin_abs: float
+    margin_pct: float
+    af: float
+    fc: float
+    sc: float
+    s_bundle: float
+    qmin: float
+    qmax_our: float
+    bb_avg: float
+    
+# ========== SUPABASE CLIENT INITIALIZATION ==========
+
+def get_supabase_client():
+    """
+    Initialize Supabase client for quote generation
+    
+    Uses environment variables for credentials
+    """
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+    
+    if not supabase_url or not supabase_key:
+        raise ValueError(
+            "SUPABASE_URL and SUPABASE_KEY must be set in environment variables"
+        )
+    
+    return create_client(supabase_url, supabase_key)
 
 # Create FastAPI application
 app = FastAPI(
@@ -270,6 +338,106 @@ async def get_statistics(db: Session = Depends(get_db)):
         "min_price": float(overall_stats.min_price) if overall_stats.min_price else None,
         "max_price": float(overall_stats.max_price) if overall_stats.max_price else None
     }
+
+
+# ========== QUOTE GENERATION ENDPOINT ==========
+
+@app.post("/api/quote", response_model=QuoteResponse)
+async def generate_quote(request: QuoteRequest = Body(...)):
+    """
+    Generate wholesale quote for a product
+    
+    Purpose:
+    - Calculate optimal wholesale quote using smooth continuous ROI logic
+    - Fetch live Buy Box data from Supabase
+    - Return complete quote with ROI calculations
+    
+    Parameters:
+    - asin: Product ASIN identifier
+    - marketplace: 'US' or 'UK'
+    - m: Our ROI floor (default 0.10 = 10%)
+    - fx_gbp_to_usd: GBP to USD exchange rate (default 1.30)
+    
+    Returns:
+    - Complete quote data including:
+      - quote_q: Wholesale quote price (Q)
+      - seller_roi_pct: Seller ROI percentage
+      - our_roi_pct: Our ROI percentage
+      - All component values (AF, FC, SC, etc.)
+    
+    Example Request:
+    ```json
+    {
+        "asin": "143914995X",
+        "marketplace": "US",
+        "m": 0.10,
+        "fx_gbp_to_usd": 1.30
+    }
+    ```
+    
+    Example Response:
+    ```json
+    {
+        "feasible": true,
+        "quote_q": 17.90,
+        "seller_roi_pct": 25.50,
+        "our_roi_pct": 15.00,
+        "bb_avg": 23.45,
+        ...
+    }
+    ```
+    """
+    try:
+        logger.info(f"Generating quote for {request.asin} ({request.marketplace})")
+        
+        # Initialize Supabase client
+        supabase_client = get_supabase_client()
+        repo = SupabaseRepo(supabase_client)
+        
+        # Generate quote using calculator
+        outputs, _, _ = calculate_quote(
+            repo=repo,
+            product_id=request.asin,
+            marketplace=request.marketplace,
+            m=request.m,
+            fx_gbp_to_usd=request.fx_gbp_to_usd
+        )
+        
+        # Get Buy Box average for response
+        bb_avg = repo.get_avg_bb_price(request.asin, request.marketplace)
+        
+        # Convert Outputs to response format
+        response = QuoteResponse(
+            feasible=outputs.feasible,
+            reason=outputs.reason,
+            quote_q=float(outputs.quote_q),
+            seller_roi_pct=float(outputs.seller_roi_pct),
+            our_roi_pct=float(outputs.our_roi_pct),
+            margin_abs=float(outputs.margin_abs),
+            margin_pct=float(outputs.margin_pct),
+            af=float(outputs.af),
+            fc=float(outputs.fc),
+            sc=float(outputs.sc),
+            s_bundle=float(outputs.s_bundle),
+            qmin=float(outputs.qmin),
+            qmax_our=float(outputs.qmax_our),
+            bb_avg=float(bb_avg)
+        )
+        
+        logger.info(
+            f"Quote generated: Q=${response.quote_q:.2f}, "
+            f"Seller ROI={response.seller_roi_pct:.2f}%, "
+            f"Our ROI={response.our_roi_pct:.2f}%"
+        )
+        
+        return response
+        
+    except ValueError as e:
+        logger.error(f"Quote generation failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error generating quote: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 # ========== ERROR HANDLERS ==========

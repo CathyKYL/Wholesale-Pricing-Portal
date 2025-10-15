@@ -142,3 +142,4 @@ def mul_pct(amount: Decimal, rate: Decimal) -> Decimal:
 
 
 
+

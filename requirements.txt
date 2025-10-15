@@ -7,4 +7,5 @@ python-dotenv
 keepa
 openpyxl
 schedule
+pytest
 
