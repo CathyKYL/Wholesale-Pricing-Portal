@@ -111,33 +111,55 @@ async function populateHeaderCategoryDropdown() {
 
 // Setup event listeners for dropdown items (called after populating)
 function setupDropdownEventListeners() {
-    const dropdownItems = document.querySelectorAll('.dropdown-item');
-    dropdownItems.forEach(item => {
-        // Remove old listeners by cloning
-        const newItem = item.cloneNode(true);
-        item.parentNode.replaceChild(newItem, item);
-    });
+    // Use event delegation on the parent dropdown container
+    // This is more reliable than attaching to individual items
+    const dropdown = document.getElementById('catalog-dropdown');
     
-    // Add new listeners
-    document.querySelectorAll('.dropdown-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const category = item.getAttribute('data-category');
-            
-            // Switch to catalog tab
-            document.querySelector('[data-tab="catalog"]').click();
-            
-            // Filter by category
+    // Remove old listener if exists
+    if (dropdown._clickHandler) {
+        dropdown.removeEventListener('click', dropdown._clickHandler);
+    }
+    
+    // Create new click handler
+    dropdown._clickHandler = async (e) => {
+        // Check if clicked element is a dropdown item
+        const dropdownItem = e.target.closest('.dropdown-item');
+        if (!dropdownItem) return;
+        
+        e.preventDefault();
+        const category = dropdownItem.getAttribute('data-category');
+        
+        console.log(`[Dropdown] Category clicked: ${category}`);
+        
+        // Switch to catalog tab
+        const catalogTab = document.querySelector('[data-tab="catalog"]');
+        if (catalogTab) {
+            catalogTab.click();
+        }
+        
+        // Wait a moment for catalog to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Set category filter value
+        const categoryFilter = document.getElementById('category-filter');
+        if (categoryFilter) {
             if (category === 'all') {
-                document.getElementById('category-filter').value = 'all';
+                categoryFilter.value = 'all';
             } else {
-                document.getElementById('category-filter').value = category;
+                categoryFilter.value = category;
             }
             
-            // Trigger filter
-            filterCatalog();
-        });
-    });
+            console.log(`[Dropdown] Filter set to: ${categoryFilter.value}`);
+            
+            // Trigger filter immediately
+            await filterCatalog();
+        }
+    };
+    
+    // Attach listener to parent
+    dropdown.addEventListener('click', dropdown._clickHandler);
+    
+    console.log('[Dropdown] ✅ Event listeners attached via delegation');
 }
 
 /* ========================================
@@ -285,7 +307,7 @@ if (globalSearchInput) {
         }
     });
     
-    // Auto-suggest as user types
+    // Auto-suggest as user types (restored)
     globalSearchInput.addEventListener('input', debounce(handleSearchInput, 300));
     
     // Close suggestions when clicking outside
@@ -325,7 +347,7 @@ async function handleSearchInput(e) {
         // Fetch all products and filter locally for suggestions
         const allProducts = await DataService.getAllProducts(marketplace);
         
-        // Filter products based on search type and query
+        // Filter products based on search type and query (partial match)
         let suggestions = [];
         const queryLower = query.toLowerCase();
         
@@ -333,18 +355,18 @@ async function handleSearchInput(e) {
             case 'asin':
                 suggestions = allProducts.filter(p => 
                     p.asin && p.asin.toLowerCase().includes(queryLower)
-                ).slice(0, 5);
+                ).slice(0, 8); // Show up to 8 matches
                 break;
             case 'title':
                 suggestions = allProducts.filter(p => 
                     p.title && p.title.toLowerCase().includes(queryLower)
-                ).slice(0, 5);
+                ).slice(0, 8); // Show up to 8 matches
                 break;
             case 'isbn':
                 suggestions = allProducts.filter(p => 
                     (p.isbn && p.isbn.toLowerCase().includes(queryLower)) ||
                     (p.isbn13 && p.isbn13.toLowerCase().includes(queryLower))
-                ).slice(0, 5);
+                ).slice(0, 8); // Show up to 8 matches
                 break;
         }
         
@@ -406,7 +428,7 @@ function displaySuggestions(products) {
     // Show suggestions dropdown
     searchSuggestionsDropdown.classList.add('active');
     
-    console.log(`[Suggestions] ✅ Dropdown shown with ${products.length} items (z-index: 2000)`);
+    console.log(`[Suggestions] ✅ Dropdown shown with ${products.length} items`);
 }
 
 // Close suggestions dropdown
@@ -575,9 +597,6 @@ function displaySearchResults(products, query, searchType) {
         const catalogItem = document.createElement('div');
         catalogItem.className = 'catalog-item';
         
-        // Use appropriate fields from product
-        const price = product.our_price || product.quotePrice || 0;
-        
         // Handle image URL properly
         let imageUrl = product.image_url || product.image;
         
@@ -591,8 +610,8 @@ function displaySearchResults(products, query, searchType) {
             }
         }
         
-        // Convert price to display currency
-        const displayPrice = CurrencyConverter.getDisplayPrice(price, product.marketplace, currentCurrency);
+        // Note: Price is calculated when user clicks into product details
+        // Not shown in preview to avoid displaying inaccurate pre-calculated prices
         
         catalogItem.innerHTML = `
             <div class="catalog-item-image">
@@ -601,7 +620,6 @@ function displaySearchResults(products, query, searchType) {
             <h3>${product.title || 'Untitled'}</h3>
             <div class="catalog-item-meta"><strong>Author:</strong> ${product.author || 'Unknown'}</div>
             <span class="catalog-item-category">${product.category_lvl3 || product.category || 'General'}</span>
-            <div class="catalog-item-price">${displayPrice}</div>
         `;
         
         // Click to view product details
@@ -904,12 +922,13 @@ async function displayProductResults(product) {
             quotePriceElement.style.opacity = '1';
             
             console.log('[Display] ✅ Displaying calculated quote: ' + displayPrice);
-            console.log('[Display]    Seller ROI: ' + quoteData.seller_roi_pct.toFixed(2) + '%');
-            console.log('[Display]    Our ROI: ' + quoteData.our_roi_pct.toFixed(2) + '%');
-            console.log('[Display]    Buy Box Avg: $' + quoteData.bb_avg.toFixed(2));
+            // Note: Internal calculations (ROI, fees, costs) are kept private and not logged
         }
         
-        // ========== STEP 3: Update ROI Calculator with Calculated Values ==========
+        // ========== STEP 3: Update ROI Calculator - Only Show Buy Price ==========
+        // Purpose: Let users input their own numbers for ROI calculation
+        // We only provide our quote price as the "Buy Price"
+        // All other fields remain at 0 for user input
         
         // Convert calculated quote for calculator (keep as number)
         const convertedQuotePrice = CurrencyConverter.convertPrice(
@@ -918,42 +937,19 @@ async function displayProductResults(product) {
             currentCurrency
         );
         
-        // Buy Price = Calculated quote price (converted) - auto-filled
+        // Buy Price = Calculated quote price (our wholesale price offer)
         document.getElementById('buy-price').value = convertedQuotePrice.toFixed(2);
         
-        // Auto-fill Buy Box price as Sale Price (converted)
-        const convertedBuyBoxPrice = CurrencyConverter.convertPrice(
-            quoteData.bb_avg, 
-            product.marketplace, 
-            currentCurrency
-        );
-        document.getElementById('sale-price').value = convertedBuyBoxPrice.toFixed(2);
+        // Set all other fields to 0 - let users input their own numbers
+        document.getElementById('sale-price').value = '0.00';
+        document.getElementById('amazon-fees').value = '0.00';
+        document.getElementById('fulfillment-fee').value = '0.00';
+        document.getElementById('shipping-cost').value = '0.00';
         
-        // Auto-fill calculated fees (converted)
-        const convertedAmazonFee = CurrencyConverter.convertPrice(
-            quoteData.af, 
-            product.marketplace, 
-            currentCurrency
-        );
-        const convertedFulfillmentFee = CurrencyConverter.convertPrice(
-            quoteData.fc, 
-            product.marketplace, 
-            currentCurrency
-        );
-        const convertedShippingCost = CurrencyConverter.convertPrice(
-            quoteData.sc, 
-            product.marketplace, 
-            currentCurrency
-        );
-        
-        document.getElementById('amazon-fees').value = convertedAmazonFee.toFixed(2);
-        document.getElementById('fulfillment-fee').value = convertedFulfillmentFee.toFixed(2);
-        document.getElementById('shipping-cost').value = convertedShippingCost.toFixed(2);
-        
-        // Calculate and display ROI with all values filled
+        // Calculate ROI with initial values
         calculateROI();
         
-        console.log('[Display] ✅ ROI Calculator auto-filled with calculated values');
+        console.log('[Display] ✅ ROI Calculator ready for user input');
         
     } catch (error) {
         console.error('[Display] ❌ Error generating quote:', error);
@@ -986,17 +982,63 @@ async function displayProductResults(product) {
         console.warn('[Display] ⚠️ Using fallback price from database');
     }
     
-    // ========== STEP 4: Fetch and Render Amazon Insight (Historical Charts + Seller Count) ==========
+    // ========== STEP 4: Fetch and Render Amazon Insight (Historical Charts + Current Stats) ==========
     
     try {
         // Fetch historical data from last 360 days
         const history = await DataService.getHistoricalData(product.asin, currentMarket);
         
-        // Display seller count
+        // Extract today's data (most recent values from the historical data)
+        const hasBuyBoxData = history.buyBoxHistory && history.buyBoxHistory.length > 0;
+        const hasRankData = history.rankHistory && history.rankHistory.length > 0;
+        
+        // Get today's Buy Box Price (last element in array)
+        const todayBuyBox = hasBuyBoxData 
+            ? history.buyBoxHistory[history.buyBoxHistory.length - 1] 
+            : null;
+        
+        // Get today's Sales Rank (last element in array)
+        const todayRank = hasRankData 
+            ? history.rankHistory[history.rankHistory.length - 1] 
+            : null;
+        
+        // Display Current Buy Box Price
+        const buyBoxElement = document.getElementById('current-buybox');
+        if (buyBoxElement) {
+            if (todayBuyBox && todayBuyBox > 0) {
+                const convertedBuyBox = CurrencyConverter.getDisplayPrice(
+                    todayBuyBox,
+                    product.marketplace,
+                    currentCurrency
+                );
+                buyBoxElement.textContent = convertedBuyBox;
+            } else {
+                buyBoxElement.textContent = 'N/A';
+            }
+        }
+        
+        // Display Current Sales Rank
+        const rankElement = document.getElementById('current-rank');
+        if (rankElement) {
+            if (todayRank && todayRank > 0) {
+                // Format large numbers with commas (e.g., 1,234,567)
+                rankElement.textContent = todayRank.toLocaleString();
+            } else {
+                rankElement.textContent = 'N/A';
+            }
+        }
+        
+        // Display Number of Sellers
         const sellerCountElement = document.getElementById('seller-count');
         if (sellerCountElement) {
             sellerCountElement.textContent = history.sellerCount || 'N/A';
         }
+        
+        // Log today's stats for debugging
+        console.log('[Display] Amazon Insight - Today\'s Stats:');
+        console.log(`  Buy Box Price: ${todayBuyBox ? '$' + todayBuyBox.toFixed(2) : 'N/A'}`);
+        console.log(`  Sales Rank: ${todayRank ? todayRank.toLocaleString() : 'N/A'}`);
+        console.log(`  Seller Count: ${history.sellerCount || 'N/A'}`);
         
         // Render charts with historical data
         renderChartsWithData(history);
@@ -1004,11 +1046,14 @@ async function displayProductResults(product) {
     } catch (error) {
         console.error('[Display] Error fetching Amazon Insight data:', error);
         
-        // Show error in seller count
+        // Show error state for all stats
+        const buyBoxElement = document.getElementById('current-buybox');
+        const rankElement = document.getElementById('current-rank');
         const sellerCountElement = document.getElementById('seller-count');
-        if (sellerCountElement) {
-            sellerCountElement.textContent = 'N/A';
-        }
+        
+        if (buyBoxElement) buyBoxElement.textContent = 'N/A';
+        if (rankElement) rankElement.textContent = 'N/A';
+        if (sellerCountElement) sellerCountElement.textContent = 'N/A';
         
         // Generate placeholder charts
         renderChartsWithData({
@@ -1044,17 +1089,27 @@ function renderChartsWithData(history) {
     if (charts.buybox) charts.buybox.destroy();
     if (charts.rank) charts.rank.destroy();
     
-    // Format date labels for display
+    // Format date labels for display with year shown once when it changes
     let labels = history.dates || [];
     if (labels.length > 0) {
         // Sample dates to show reasonable number of labels (every 30 days)
         const step = Math.ceil(labels.length / 12);
-        labels = labels.filter((_, idx) => idx % step === 0);
+        const sampledDates = labels.filter((_, idx) => idx % step === 0);
         
-        // Format dates to be more readable
-        labels = labels.map(dateStr => {
+        // Format dates: Show year when it changes, then just month names
+        let lastYear = null;
+        labels = sampledDates.map(dateStr => {
             const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const year = date.getFullYear();
+            const month = date.toLocaleDateString('en-US', { month: 'short' });
+            
+            // If year changed from last label, show "YYYY- Mon"
+            if (lastYear !== year) {
+                lastYear = year;
+                return `${year}- ${month}`;
+            }
+            // Otherwise just show month
+            return month;
         });
     }
     
@@ -1102,14 +1157,14 @@ function renderChartsWithData(history) {
         }
     };
     
-    // Buy Box Price Chart
+    // Amazon Price Chart (formerly Buy Box Price)
     const buyboxCtx = document.getElementById('buybox-chart').getContext('2d');
     charts.buybox = new Chart(buyboxCtx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Buy Box Price',
+                label: 'Amazon Price',
                 data: buyBoxData,
                 borderColor: '#3498db',
                 backgroundColor: 'rgba(52, 152, 219, 0.1)',
@@ -1123,7 +1178,7 @@ function renderChartsWithData(history) {
         options: commonOptions
     });
     
-    // Sales Rank Chart (lower is better - reversed axis)
+    // Sales Rank Chart (Y-axis inverted: lower rank = higher on chart = better)
     const rankCtx = document.getElementById('rank-chart').getContext('2d');
     charts.rank = new Chart(rankCtx, {
         type: 'line',
@@ -1147,7 +1202,7 @@ function renderChartsWithData(history) {
                 ...commonOptions.scales,
                 y: {
                     ...commonOptions.scales.y,
-                    reverse: false, // Don't reverse, just show as-is
+                    reverse: false, // Normal: lower rank appears lower on chart
                     ticks: {
                         callback: function(value) {
                             return value.toLocaleString(); // Format as number with commas
@@ -1259,10 +1314,6 @@ function renderCatalog(products) {
         const catalogItem = document.createElement('div');
         catalogItem.className = 'catalog-item';
         
-        // Use appropriate fields from product
-        const price = product.our_price || product.quotePrice || 0;
-        const isbn = product.isbn || product.isbn13 || '-';
-        
         // Handle image URL properly - check for actual data
         let imageUrl = product.image_url || product.image;
         
@@ -1280,8 +1331,8 @@ function renderCatalog(products) {
             imageUrl = `https://images-na.ssl-images-amazon.com/images/I/${imageUrl}`;
         }
         
-        // Convert price to display currency
-        const displayPrice = CurrencyConverter.getDisplayPrice(price, product.marketplace, currentCurrency);
+        // Note: Price is calculated dynamically when user clicks into product
+        // Not displayed in catalog preview to avoid showing inaccurate stored prices
         
         catalogItem.innerHTML = `
             <div class="catalog-item-image">
@@ -1290,7 +1341,6 @@ function renderCatalog(products) {
             <h3>${product.title || 'Untitled'}</h3>
             <div class="catalog-item-meta"><strong>Author:</strong> ${product.author || 'Unknown'}</div>
             <span class="catalog-item-category">${product.category_lvl3 || product.category || 'General'}</span>
-            <div class="catalog-item-price">${displayPrice}</div>
         `;
         
         // Click to view in quotation tab
@@ -1427,4 +1477,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('Ready for use! Try searching for a book.');
     console.log('='.repeat(80));
 });
-

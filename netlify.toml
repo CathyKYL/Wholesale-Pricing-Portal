@@ -1,0 +1,14 @@
+[build]
+  # No build command needed - static site
+  publish = "Front end"
+  
+[[redirects]]
+  # Single Page Application routing
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  # Node version (if needed for any future tooling)
+  NODE_VERSION = "18"
+
