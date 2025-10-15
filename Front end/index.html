@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Portal - Wholesale Quotation Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles_enhancements.css">
+    <!-- Chart.js CDN for chart visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Supabase JS Client CDN (for live database access) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- ========================================
+         TOP NAVIGATION BAR
+    ========================================= -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="logo" id="logo-home">Wholesale Portal</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="quotation">Quotation</button>
+                <div class="nav-tab-wrapper">
+                    <button class="nav-tab" data-tab="catalog">Catalog</button>
+                    <!-- Catalog dropdown menu - dynamically populated from database -->
+                    <div class="catalog-dropdown" id="catalog-dropdown">
+                        <a href="#" class="dropdown-item" data-category="all">All Categories</a>
+                        <!-- Categories from category_lvl3 will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+            <!-- Currency Toggle in Header -->
+            <div class="currency-toggle-header">
+                <span class="toggle-label" id="currency-usd-header">USD</span>
+                <label class="switch">
+                    <input type="checkbox" id="currency-toggle-header">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label" id="currency-gbp-header">GBP</span>
+            </div>
+            <!-- Search Icon Button -->
+            <button class="header-search-btn" id="header-search-btn" title="Search Products">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ========================================
+         GLOBAL EXPANDABLE SEARCH BAR
+    ========================================= -->
+    <div class="global-search-bar" id="global-search-bar">
+        <div class="global-search-container">
+            <button class="close-search-btn" id="close-search-btn" title="Close Search">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            
+            <select id="global-search-type" class="search-dropdown">
+                <option value="title">Title</option>
+                <option value="asin">ASIN</option>
+                <option value="isbn">ISBN</option>
+            </select>
+            
+            <div class="search-input-wrapper">
+                <input type="text" id="global-search-input" class="search-input" placeholder="Enter search term..." autocomplete="off">
+                <!-- Search Suggestions Dropdown -->
+                <div class="search-suggestions" id="search-suggestions"></div>
+            </div>
+            
+            <!-- Market Toggle Switch -->
+            <div class="toggle-switch">
+                <span class="toggle-label active" id="global-market-us">US</span>
+                <label class="switch">
+                    <input type="checkbox" id="global-market-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span class="toggle-label" id="global-market-uk">UK</span>
+            </div>
+            
+            <button id="global-search-btn" class="search-btn">Search</button>
+        </div>
+    </div>
+
+    <!-- ========================================
+         TAB 1: QUOTATION PAGE
+    ========================================= -->
+    <div class="tab-content active" id="quotation-tab">
+        <!-- Search Bar Area -->
+        <div class="search-section">
+            <div class="search-container">
+                <select id="search-type" class="search-dropdown">
+                    <option value="asin">ASIN</option>
+                    <option value="title">Title</option>
+                    <option value="isbn">ISBN</option>
+                </select>
+                
+                <input type="text" id="search-input" class="search-input" placeholder="Enter search term...">
+                
+                <!-- Market Toggle Switch -->
+                <div class="toggle-switch">
+                    <span class="toggle-label" id="market-us">US</span>
+                    <label class="switch">
+                        <input type="checkbox" id="market-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label" id="market-uk">UK</span>
+                </div>
+                
+                <button id="search-btn" class="search-btn">Search</button>
+            </div>
+        </div>
+
+        <!-- Results Area (Initially Hidden) -->
+        <div class="results-section" id="results-section">
+            <div class="container">
+                <!-- Top Section: Product Details + Quote Info -->
+                <div class="product-layout">
+                    <!-- Left Column: Image + Description/Specs -->
+                    <div class="product-left-column">
+                        <!-- Large Product Image -->
+                        <div class="product-image-large">
+                            <img id="product-img" src="" alt="Product Image">
+                        </div>
+                        
+                        <!-- Product Information Tabs -->
+                        <div class="product-info-tabs">
+                            <div class="tab-buttons">
+                                <button class="info-tab-btn active" data-info-tab="description">Description</button>
+                                <button class="info-tab-btn" data-info-tab="specifications">Product Specifications</button>
+                            </div>
+                            
+                            <!-- Description Tab Content -->
+                            <div class="info-tab-content active" id="description-content">
+                                <h3>Description</h3>
+                                <p id="product-description">Detailed product description will appear here.</p>
+                            </div>
+                            
+                            <!-- Specifications Tab Content -->
+                            <div class="info-tab-content" id="specifications-content">
+                                <h3>Product Specifications</h3>
+                                <div class="specs-grid">
+                                    <div class="spec-row">
+                                        <span class="spec-label">Author:</span>
+                                        <span class="spec-value" id="product-author">-</span>
+                                    </div>
+                                    <div class="spec-row">
+                                        <span class="spec-label">ASIN:</span>
+                                        <span class="spec-value" id="product-asin">-</span>
+                                    </div>
+                                    <div class="spec-row" id="isbn-row">
+                                        <span class="spec-label">ISBN:</span>
+                                        <span class="spec-value" id="product-isbn">-</span>
+                                    </div>
+                                    <div class="spec-row">
+                                        <span class="spec-label">Category:</span>
+                                        <span class="spec-value" id="product-category">-</span>
+                                    </div>
+                                    <div class="spec-row">
+                                        <span class="spec-label">Weight:</span>
+                                        <span class="spec-value" id="product-weight">-</span>
+                                    </div>
+                                    <div class="spec-row">
+                                        <span class="spec-label">Package Dimensions:</span>
+                                        <span class="spec-value" id="product-dimensions">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: Quote + Shipping + Contact -->
+                    <div class="product-right-column">
+                        <div class="quote-sidebar">
+                            <!-- Product Title -->
+                            <h1 id="product-title" class="product-title-large">Product Title</h1>
+                            
+                            <!-- Current Quote Price -->
+                            <div class="quote-price-box">
+                                <div class="quote-label-small">Current Quote Price</div>
+                                <div class="quote-price-large" id="current-quote-price">$0.00</div>
+                            </div>
+                            
+                            <!-- Shipping Information -->
+                            <div class="shipping-info-box">
+                                <h3>Shipping Information</h3>
+                                <div class="shipping-details">
+                                    <div class="shipping-row">
+                                        <svg class="shipping-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M13 17h8l-1.5-6H13V4.5L4.5 14H11v7.5L13 17z"/>
+                                        </svg>
+                                        <span id="shipping-text">Available for International and UK delivery</span>
+                                    </div>
+                                    <div class="shipping-row">
+                                        <svg class="shipping-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="1" y="3" width="15" height="13"></rect>
+                                            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                            <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                            <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                        </svg>
+                                        <span>Estimated dispatch: 2-3 business days</span>
+                                    </div>
+                                    <div class="shipping-row">
+                                        <svg class="shipping-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <span>Delivery time: 5-7 business days</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Contact Us Button -->
+                            <button class="contact-btn">
+                                <svg class="contact-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                Contact Us to Order or Inquire
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Section: ROI Calculator -->
+                <div class="card roi-calculator">
+                    <h3>ROI Calculator for Sellers</h3>
+                    <p class="calculator-subtitle">Calculate your potential return on investment</p>
+                    <div class="calculator-grid">
+                        <div class="calc-field">
+                            <label for="buy-price">Buy Price</label>
+                            <input type="number" id="buy-price" step="0.1" value="10.00" placeholder="0.00">
+                        </div>
+                        <div class="calc-field">
+                            <label for="sale-price">Sales Price</label>
+                            <input type="number" id="sale-price" step="0.1" value="0.00" placeholder="0.00">
+                        </div>
+                        <div class="calc-field">
+                            <label for="amazon-fees">Amazon Fee</label>
+                            <input type="number" id="amazon-fees" step="0.1" value="0.00" placeholder="0.00">
+                        </div>
+                        <div class="calc-field">
+                            <label for="fulfillment-fee">Fulfillment Fee</label>
+                            <input type="number" id="fulfillment-fee" step="0.1" value="0.00" placeholder="0.00">
+                        </div>
+                        <div class="calc-field">
+                            <label for="shipping-cost">Shipping Cost</label>
+                            <input type="number" id="shipping-cost" step="0.1" value="0.00" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="roi-output">
+                        <span class="roi-label">Expected ROI:</span>
+                        <span class="roi-value" id="roi-value">-</span>
+                    </div>
+                </div>
+
+                <!-- Amazon Insight Section -->
+                <div class="card quote-details">
+                    <h3>Amazon Insight</h3>
+                    <p class="section-subtitle">Track pricing trends and sales performance over the last 360 days</p>
+                    
+                    <!-- Seller Count Info -->
+                    <div class="insight-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Number of Sellers Today:</span>
+                            <span class="stat-value" id="seller-count">Loading...</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts Row -->
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h4>Buy Box Price (Last 360 Days)</h4>
+                            <canvas id="buybox-chart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <h4>Sales Rank (Last 360 Days)</h4>
+                            <p class="chart-note">Lower rank = Better performance</p>
+                            <canvas id="rank-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Initial State Message -->
+        <div class="initial-message" id="initial-message">
+            <div class="message-content">
+                <h2>Welcome to Wholesale Portal</h2>
+                <p>Search for a book to view quotation details and calculate ROI</p>
+            </div>
+        </div>
+
+        <!-- Search Results Section -->
+        <div class="search-results-section" id="search-results-section">
+            <div class="container">
+                <div class="search-results-header">
+                    <h2 id="search-results-title">Search Results</h2>
+                    <p id="search-results-count"></p>
+                </div>
+                <div class="catalog-grid" id="search-results-grid">
+                    <!-- Search results will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================
+         TAB 2: CATALOG PAGE
+    ========================================= -->
+    <div class="tab-content" id="catalog-tab">
+        <div class="container">
+            <!-- Catalog Filters -->
+            <div class="catalog-filters">
+                <!-- Marketplace Toggle for Catalog -->
+                <div class="filter-group">
+                    <label>Marketplace:</label>
+                    <div class="toggle-switch">
+                        <span class="toggle-label active" id="catalog-market-us">US</span>
+                        <label class="switch">
+                            <input type="checkbox" id="catalog-market-toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label" id="catalog-market-uk">UK</span>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label for="category-filter">Category:</label>
+                    <select id="category-filter" class="filter-select">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Catalog Grid -->
+            <div class="catalog-grid" id="catalog-grid">
+                <!-- Products will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration and Service Layer Scripts (load before main script) -->
+    <!-- Added cache-busting parameter to force browser reload after fix -->
+    <script src="config.js?v=20251015"></script>
+    <script src="currencyConverter.js?v=20251015"></script>
+    <script src="supabaseClient.js?v=20251015"></script>
+    <script src="dataService.js?v=20251015"></script>
+    
+    <!-- Main Application Script -->
+    <script src="script.js?v=20251015"></script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,89 @@
+/* Additional styles for product detail enhancements */
+
+/* ROI Calculator Breakdown */
+.roi-breakdown {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.breakdown-item:not(:last-child) {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.breakdown-item span:first-child {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.breakdown-item span:last-child {
+    font-weight: 600;
+    color: #212529;
+}
+
+/* Amazon Insight Section */
+.insight-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.insight-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.insight-label {
+    font-size: 14px;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.insight-value {
+    font-size: 32px;
+    font-weight: 700;
+}
+
+/* Chart Titles */
+.chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 8px;
+}
+
+.chart-subtitle {
+    font-size: 13px;
+    color: #6c757d;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .insight-value {
+        font-size: 24px;
+    }
+    
+    .chart-title {
+        font-size: 14px;
+    }
+}
+
+
+
+
+
